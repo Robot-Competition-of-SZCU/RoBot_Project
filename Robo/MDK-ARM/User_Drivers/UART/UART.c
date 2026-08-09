@@ -20,6 +20,36 @@
 char Debug_Send_Buffer[66];		//发送数据缓存区	
 char Debug_Receive_Buffer[66];	//接收数据缓存区
 
+
+//景区播放发送数据
+const char Jinqu_Buffer[5][14] ={
+{FD,00,0B,01,01,B6,AB,D4,C0,CC,A9,C9,BD,EE},
+{FD,00,0B,01,01,CE,F7,D4,C0,BB,AA,C9,BD,BE},
+{FD,00,0B,01,01,C4,CF,D4,C0,BA,E2,C9,BD,C5},
+{FD,00,0B,01,01,B1,B1,D4,C0,BA,E3,C9,BD,CF},
+{FD,00,0B,01,01,D6,D0,D4,C0,CB,C9,C9,BD,92}   
+};
+
+/** @brief	景区五岳播放
+  **/
+void Jinqu_Play(int num)
+{
+	short i;
+
+	//等待UART外设空闲,若100ms内未等到，则发送失败，返回
+	for(char i=0;i<100;i++)
+	{
+		if(__HAL_DMA_GET_COUNTER(&hdma_usart3_tx) == 0)
+			goto Send;
+		osDelay(1);
+	}
+	return;
+	
+		Send:
+	//调用DMA进行数据发送
+	HAL_UART_Transmit_DMA(&huart3,(uint8_t*)Jinqu_Buffer[num],14);
+};
+
 /** @brief	串口接收数据初始化
   **/
 void UART_Receive_Init(void)
