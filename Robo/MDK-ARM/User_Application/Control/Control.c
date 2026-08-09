@@ -16,21 +16,3 @@
 
 //控制状态结构体
 struct Motor_Control Motor_Control_Parm;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
