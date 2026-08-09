@@ -15,7 +15,7 @@
 #include "OLED.h"
 
 //控制状态结构体
-struct Control Control_Parm;
+struct Motor_Control Motor_Control_Parm;
 
 
 

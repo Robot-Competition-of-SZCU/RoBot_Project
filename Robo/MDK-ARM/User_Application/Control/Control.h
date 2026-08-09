@@ -14,8 +14,8 @@
 
 #include "Motor.h"
 
-//控制状态结构体
-struct Control{
+//电机控制状态结构体
+struct Motor_Control{
 	Motor_State M1;		//电机1运行方向
 	Motor_State M2;		//电机2运行方向
 	Motor_State M3;		//电机3运行方向
@@ -25,12 +25,14 @@ struct Control{
 	float Motor2_Speed;	//电机2目标速度，单位rmp/s
 	float Motor3_Speed;	//电机3目标速度，单位rmp/s
 	float Motor4_Speed;	//电机4目标速度，单位rmp/s
-	
-	char Grayscale_Calibration_State;	//灰度传感器校准状态	0：无校准，1
 };
-extern struct Control Control_Parm;
+extern struct Motor_Control Motor_Control_Parm;
 
-
+//运行状态结构体
+struct RUN{
+	char RUN_State;		//运行状态，0运行，1停止
+};
+extern struct RUN RUN_Parm;
 
 
 
