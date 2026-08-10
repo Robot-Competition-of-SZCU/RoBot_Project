@@ -19,6 +19,8 @@
 #include "Grayscale_ADC.h"
 #include "Servo.h"
 
+#include "Control.h"
+
 //Flash存储数据结构体
 struct Flash Flash_Save;
 
@@ -36,6 +38,8 @@ HAL_StatusTypeDef Flash_Write(void)
 	memcpy(&Flash_Save.Grayscale_ADC_Trigger_Threshold,&Grayscale.Grayscale_ADC_Trigger_Threshold,sizeof(Grayscale.Grayscale_ADC_Trigger_Threshold));
 	//舵机数据
 	memcpy(&Flash_Save.Servo_EN_State,&Servo_State,sizeof(Servo_State));
+	//运行数据
+	memcpy(&Flash_Save.Base_Speed_Set,&Motor_Control_Parm.Base_Speed_Set,sizeof(float));
 	
 	HAL_StatusTypeDef status = HAL_OK;					//状态码
 	
@@ -103,4 +107,6 @@ void Flash_Read(void)
 	memcpy(&Grayscale.Grayscale_ADC_Trigger_Threshold,&Flash_Save.Grayscale_ADC_Trigger_Threshold,sizeof(Grayscale.Grayscale_ADC_Trigger_Threshold));
 	//舵机数据
 	memcpy(&Servo_State,&Flash_Save.Servo_EN_State,sizeof(Servo_State));
+	//运行数据
+	memcpy(&Motor_Control_Parm.Base_Speed_Set,&Flash_Save.Base_Speed_Set,sizeof(float));
 }

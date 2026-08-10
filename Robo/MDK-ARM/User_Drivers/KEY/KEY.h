@@ -31,7 +31,7 @@ typedef enum
 	Rocker_Right,	//摇杆_右
 	Rocker_Down,	//摇杆_下
 	Rocker_Middle,	//摇杆_中
-	Rocker_Left,	//摇杆_左
+	Rocker_Left		//摇杆_左
 }KEY_Encode;
 
 void KEY_Polling_Function(void);					//按键轮询函数，轮询间隔为20ms

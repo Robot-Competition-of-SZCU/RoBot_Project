@@ -15,6 +15,8 @@
 #include "adc.h"
 #include "tim.h"
 
+#include "Control.h"
+
 //灰度传感器ADC数据缓存区
 short Grayscale_ADC_Buffer[16];
 
@@ -149,6 +151,13 @@ void Grayscale_ADC_Compute(void)
 		}
 	}
 
+	//计算触发状态
+	for(char i=0;i<Grayscale_Num;i++)
+		if(Grayscale.Grayscale_ADC_Compute_Percent[i] >= Grayscale.Grayscale_ADC_Trigger_Threshold)	
+			Grayscale.Grayscale_Trigger_State[i] = 1;
+		else
+			Grayscale.Grayscale_Trigger_State[i] = 0;
+
 	//计算映射一维坐标值
 	float Grayscale_Weight=0;	//灰度权重值
 	float Grayscale_Int=0;		//灰度总值
@@ -168,6 +177,19 @@ void Grayscale_ADC_Compute(void)
 	//计算映射值（防止除零）
 	if(Grayscale_Int != 0)
 		Grayscale.Grayscale_Map = Grayscale_Weight / Grayscale_Int;
+	else
+		Grayscale.Grayscale_Map = 0;
+
+	//运行状态下
+	if(RUN_Parm.RUN_State)
+	{
+		char Trigger_Int = 0;
+		for(char i=0;i<Grayscale_Num;i++)
+		Trigger_Int += Grayscale.Grayscale_Trigger_State[i];
+
+		if(Trigger_Int == 0 || Trigger_Int >= 5)
+			RUN_Parm.RUN_State = 0;
+	}
 
 }
 

@@ -65,6 +65,8 @@ void Error_Handler(void);
 #define Slave2_GPIO_Port GPIOE
 #define Slave1_Pin GPIO_PIN_6
 #define Slave1_GPIO_Port GPIOE
+#define RUN_LED_Pin GPIO_PIN_13
+#define RUN_LED_GPIO_Port GPIOC
 #define Digital_IN9_Pin GPIO_PIN_0
 #define Digital_IN9_GPIO_Port GPIOF
 #define Digital_IN10_Pin GPIO_PIN_1

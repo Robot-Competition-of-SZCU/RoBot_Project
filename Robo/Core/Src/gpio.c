@@ -58,7 +58,7 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOE, Digial_OUT3_Pin|Digial_OUT4_Pin|Digial_OUT1_Pin|Digial_OUT2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(RUN_LED_GPIO_Port, RUN_LED_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, OLED_RES_Pin|OLED_DC_Pin, GPIO_PIN_SET);
@@ -80,12 +80,12 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PC13 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  /*Configure GPIO pin : RUN_LED_Pin */
+  GPIO_InitStruct.Pin = RUN_LED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(RUN_LED_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : Digital_IN9_Pin Digital_IN10_Pin Digital_IN11_Pin Digital_IN12_Pin
                            Digital_IN13_Pin Digital_IN14_Pin Digital_IN15_Pin Digital_IN16_Pin */

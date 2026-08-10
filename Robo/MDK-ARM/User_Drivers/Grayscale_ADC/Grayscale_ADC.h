@@ -29,9 +29,9 @@ struct Grayscale_ADC{
 	short Grayscale_ADC_Compute[16];//灰度传感器数据校准值
 	float Grayscale_ADC_Compute_Percent[16];	//灰度传感器数据校准后百分比
 	float Grayscale_ADC_Trigger_Threshold;		//灰度传感器触发阈值
+	char Grayscale_Trigger_State[16];			//灰度传感器触发状态
 	char Compute_Map_Mode;						//映射计算模式，0：正向计算(线位置传感器值为高)，1：反向计算(线位置传感器值为低)
 	float Grayscale_Map;						//灰度传感器ADC映射一维坐标值
-	char Grayscale_Trigger_State[16];			//灰度传感器触发状态
 };
 extern struct Grayscale_ADC Grayscale;
 

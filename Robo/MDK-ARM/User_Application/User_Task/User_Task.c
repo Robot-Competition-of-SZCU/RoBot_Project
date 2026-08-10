@@ -39,12 +39,6 @@
 #include "PID.h"
 #include "Set_And_Show.h"
 
-
-
-
-
-volatile UBaseType_t RUN_LED = 0;
-
 //各任务信息存储区
 TaskStatus_t xTaskDetails_defaultTask;
 TaskStatus_t xTaskDetails_RUN_LED_Flash;
@@ -64,18 +58,20 @@ void User_Init(void)
 	//再执行一遍flash写入操作后方可运行该函数
 	Flash_Read();			//从Flash中读取数据
 	
-	Motor_Init();			//电机初始化
+	//Motor_Init();			//电机初始化
 	Servo_Init();			//舵机初始化
 	Encoder_Init();			//编码器初始化
 	UART_Receive_Init();	//串口接收初始化
 	Grayscale_ADC_Init();	//灰度传感器ADC采集初始化
 	OLED_Init();			//OLED初始化
-	
+	RUN_Parm_Init();		//运行参数初始化
 	PID_Parameter_Init();	//PID参数初始化
 	
 	
 	
+	Motor_Start();
 	//Motor_Control_One(M1,Advance,10);
+	
 
 	//HAL_TIM_Base_Start_IT(&htim6);		//开启TIM6定时中断，间隔为1ms
 }
@@ -178,6 +174,8 @@ void Slow_Compute_Task(void *argument)
 		//10ms延时任务
 		if(Time_Base % 2 == 0)
 		{
+			RUN_Control();					//运行控制
+			Scan_Line_Control();			//巡线控制
 			Servo_Control();				//舵机控制
 		}
 		//1000ms延时任务
@@ -211,7 +209,6 @@ void UART_Debug_Task(void *argument)
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 		
 		static char Send_Data[40];
-		//char *P_Send_Data;
 		
 		memcpy(&Send_Data[0], &Grayscale_ADC_Buffer[0],2);
 		memcpy(&Send_Data[2], &Grayscale_ADC_Buffer[1],2);
@@ -230,37 +227,9 @@ void UART_Debug_Task(void *argument)
 		
 		UART_Debug_Send_Date(Send_Data,28);
 		
-//		//传递控制参数
-//		float Rocker_UD,Rocker_RL;
-//		
-//		memcpy(&Rocker_UD, &Debug_Receive_Buffer[1], 4);
-//		memcpy(&Rocker_RL, &Debug_Receive_Buffer[5], 4);
-//		
-//		if(Rocker_UD > 0)
-//		{
-//			Control_Parm.M1 = Advance;
-//			Control_Parm.M2 = Advance;
-//			Control_Parm.M3 = Advance;
-//			Control_Parm.M4 = Advance;
-//			
-//			Control_Parm.Motor1_Speed = Rocker_UD;
-//			Control_Parm.Motor2_Speed = Rocker_UD;
-//			Control_Parm.Motor3_Speed = Rocker_UD;
-//			Control_Parm.Motor4_Speed = Rocker_UD;
-//		}
-//		else if(Rocker_UD < 0)
-//		{
-//			Control_Parm.M1 = Retreat;
-//			Control_Parm.M2 = Retreat;
-//			Control_Parm.M3 = Retreat;
-//			Control_Parm.M4 = Retreat;
-//			
-//			Control_Parm.Motor1_Speed = Rocker_UD - 2*Rocker_UD;
-//			Control_Parm.Motor2_Speed = Rocker_UD - 2*Rocker_UD;
-//			Control_Parm.Motor3_Speed = Rocker_UD - 2*Rocker_UD;
-//			Control_Parm.Motor4_Speed = Rocker_UD - 2*Rocker_UD;
-//		}
-	
+		// memcpy(&Line_Patrol_PID.Out_Alpha,&Debug_Receive_Buffer[5],sizeof(float));
+		// memcpy(&Line_Patrol_PID.Ki,&Debug_Receive_Buffer[9],sizeof(float));
+		// memcpy(&Line_Patrol_PID.Kd,&Debug_Receive_Buffer[13],sizeof(float));
 	}
 }
 	

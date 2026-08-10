@@ -25,6 +25,9 @@ struct Motor_Control{
 	float Motor2_Speed;	//电机2目标速度，单位rmp/s
 	float Motor3_Speed;	//电机3目标速度，单位rmp/s
 	float Motor4_Speed;	//电机4目标速度，单位rmp/s
+
+	float Base_Speed;		//基础速度
+	float Base_Speed_Set;	//基础速度设置
 };
 extern struct Motor_Control Motor_Control_Parm;
 
@@ -33,6 +36,9 @@ struct RUN{
 	char RUN_State;		//运行状态，0运行，1停止
 };
 extern struct RUN RUN_Parm;
+
+void RUN_Parm_Init(void);		//运行参数初始化
+void RUN_Control(void);			//运行控制
 
 
 
