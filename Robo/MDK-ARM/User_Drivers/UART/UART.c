@@ -21,7 +21,7 @@ char Debug_Send_Buffer[66];		//发送数据缓存区
 char Debug_Receive_Buffer[66];	//接收数据缓存区
 
 
-//景区播放发送数据
+//景区播放发送数据，五岳顺序（东南西北中）
 const char Jinqu_Buffer[5][14] ={
 {FD,00,0B,01,01,B6,AB,D4,C0,CC,A9,C9,BD,EE},
 {FD,00,0B,01,01,CE,F7,D4,C0,BB,AA,C9,BD,BE},
