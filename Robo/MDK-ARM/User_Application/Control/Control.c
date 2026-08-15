@@ -253,13 +253,13 @@ void RUN_System_Control(void)
 			//左侧传感器被触发，且当前端口为低电平
 			if(RUN_Parm.Sensor_Left && HAL_GPIO_ReadPin(GPIOF,GPIO_PIN_6) == 0)
 			{	//角度偏移
-				RUN_Parm.Target_Angle -= 5;
+				RUN_Parm.Target_Angle -= 10;
 				RUN_Parm.Sensor_Left = 0;
 			}
 			//右侧传感器被触发，且当前端口为低电平
 			if(RUN_Parm.Sensor_Right && HAL_GPIO_ReadPin(GPIOF,GPIO_PIN_6) == 0)
 			{	//角度偏移
-				RUN_Parm.Target_Angle += 5;
+				RUN_Parm.Target_Angle += 10;
 				RUN_Parm.Sensor_Right = 0;
 			}
 			osDelay(1);

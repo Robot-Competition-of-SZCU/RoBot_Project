@@ -79,7 +79,7 @@ void User_Init(void)
 	Motor_Start();
 	//Motor_Control_One(M1,Advance,10);
 	
-
+	Motor_Control_Parm.Motor1_Speed = 2;
 	//HAL_TIM_Base_Start_IT(&htim6);		//开启TIM6定时中断，间隔为1ms
 }
 
@@ -169,7 +169,7 @@ void Slow_Compute_Task(void *argument)
 		Encoder_Compute();					//计算编码器输入频率
 		Encoder_Input_Frequiency_Filter();	//编码器输入频率滤波
 		Encoder_Speed_Compute();			//编码器速度计算
-		Motor_Speed_Control();					//电机速度控制，PID内环
+		Motor_Speed_Control();				//电机速度控制，PID内环
 
 		//IMU姿态解析
 		IMU_GET_Data();
@@ -182,10 +182,10 @@ void Slow_Compute_Task(void *argument)
 			//根据RUN_Parm.Control_State状态切换控制方式
 			if(RUN_Parm.Control_State == Direct_Control)
 			{	//直接控制模式
-				// Motor_Control_One(M1,Motor_Control_Parm.M1,Motor_Control_Parm.Motor1_Speed);
-				// Motor_Control_One(M2,Motor_Control_Parm.M2,Motor_Control_Parm.Motor1_Speed);
-				// Motor_Control_One(M3,Motor_Control_Parm.M3,Motor_Control_Parm.Motor1_Speed);
-				// Motor_Control_One(M4,Motor_Control_Parm.M4,Motor_Control_Parm.Motor1_Speed);
+				Motor_Control_Parm.Motor1_Speed = Motor_Control_Parm.Base_Speed;
+				Motor_Control_Parm.Motor2_Speed = Motor_Control_Parm.Base_Speed;
+				Motor_Control_Parm.Motor3_Speed = Motor_Control_Parm.Base_Speed;
+				Motor_Control_Parm.Motor4_Speed = Motor_Control_Parm.Base_Speed;
 			}
 			else if(RUN_Parm.Control_State == ScanLine_Control)
 				Scan_Line_Control();			//巡线控制
@@ -257,24 +257,26 @@ void UART_Debug_Task(void *argument)
 		
 		static char Send_Data[40];
 		
-		memcpy(&Send_Data[0], &Grayscale_ADC_Buffer[0],2);
-		memcpy(&Send_Data[2], &Grayscale_ADC_Buffer[1],2);
-		memcpy(&Send_Data[4], &Grayscale_ADC_Buffer[2],2);
-		memcpy(&Send_Data[6], &Grayscale_ADC_Buffer[3],2);
-		memcpy(&Send_Data[8], &Grayscale_ADC_Buffer[4],2);
-		memcpy(&Send_Data[10], &Grayscale_ADC_Buffer[5],2);
-		memcpy(&Send_Data[12], &Grayscale_ADC_Buffer[6],2);
-		memcpy(&Send_Data[14], &Grayscale_ADC_Buffer[7],2);
-		memcpy(&Send_Data[16], &Grayscale_ADC_Buffer[8],2);
-		memcpy(&Send_Data[18], &Grayscale_ADC_Buffer[9],2);
-		memcpy(&Send_Data[20], &Grayscale_ADC_Buffer[10],2);
-		memcpy(&Send_Data[22], &Grayscale_ADC_Buffer[11],2);
-		memcpy(&Send_Data[24], &Grayscale_ADC_Buffer[12],2);
-		memcpy(&Send_Data[26], &Grayscale_ADC_Buffer[13],2);
+		// memcpy(&Send_Data[0], &Grayscale_ADC_Buffer[0],2);
+		// memcpy(&Send_Data[2], &Grayscale_ADC_Buffer[1],2);
+		// memcpy(&Send_Data[4], &Grayscale_ADC_Buffer[2],2);
+		// memcpy(&Send_Data[6], &Grayscale_ADC_Buffer[3],2);
+		// memcpy(&Send_Data[8], &Grayscale_ADC_Buffer[4],2);
+		// memcpy(&Send_Data[10], &Grayscale_ADC_Buffer[5],2);
+		// memcpy(&Send_Data[12], &Grayscale_ADC_Buffer[6],2);
+		// memcpy(&Send_Data[14], &Grayscale_ADC_Buffer[7],2);
+		// memcpy(&Send_Data[16], &Grayscale_ADC_Buffer[8],2);
+		// memcpy(&Send_Data[18], &Grayscale_ADC_Buffer[9],2);
+		// memcpy(&Send_Data[20], &Grayscale_ADC_Buffer[10],2);
+		// memcpy(&Send_Data[22], &Grayscale_ADC_Buffer[11],2);
+		// memcpy(&Send_Data[24], &Grayscale_ADC_Buffer[12],2);
+		// memcpy(&Send_Data[26], &Grayscale_ADC_Buffer[13],2);
 		
-		UART_Debug_Send_Date(Send_Data,28);
+		// memcpy(&Send_Data[0],&PID_Motor1.Target,sizeof(float));
+		// memcpy(&Send_Data[4],&Encoder1.RMP_S,sizeof(float));
+		// UART_Debug_Send_Date(Send_Data,8);
 		
-		// memcpy(&Line_Patrol_PID.Out_Alpha,&Debug_Receive_Buffer[5],sizeof(float));
+		// memcpy(&Motor_Control_Parm.Motor1_Speed,&Debug_Receive_Buffer[1],sizeof(float));
 		// memcpy(&Line_Patrol_PID.Ki,&Debug_Receive_Buffer[9],sizeof(float));
 		// memcpy(&Line_Patrol_PID.Kd,&Debug_Receive_Buffer[13],sizeof(float));
 	}
