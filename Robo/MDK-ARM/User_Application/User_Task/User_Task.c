@@ -38,6 +38,8 @@
 #include "Control.h"
 #include "PID.h"
 #include "Set_And_Show.h"
+#include "IMU.h"
+#include "Interrupt.h"
 
 //各任务信息存储区
 TaskStatus_t xTaskDetails_defaultTask;
@@ -67,7 +69,12 @@ void User_Init(void)
 	RUN_Parm_Init();		//运行参数初始化
 	PID_Parameter_Init();	//PID参数初始化
 	
-	
+	HAL_Delay(1000);
+	UART_Audio_Loud_Control(30);
+	HAL_Delay(20);
+	UART_Audio_Mode_Control();
+	HAL_Delay(20);
+	//UART_Audio_Control(1);
 	
 	Motor_Start();
 	//Motor_Control_One(M1,Advance,10);
@@ -88,17 +95,6 @@ void RUN_LED_Flash_Task(void *argument)
 		osDelay(200);
 		RUN_LED_Control(LED_OFF);
 		osDelay(200);
-	}
-}
-
-/** @brief	PD3,PD4状态指示灯闪烁任务
-  * @note	
-  **/
-void State_LED_Flash_Task(void *argument)
-{
-	for(;;)
-	{
-		osDelay(1);
 	}
 }
 
@@ -164,18 +160,38 @@ void Slow_Compute_Task(void *argument)
 	  
 		static short Time_Base;	//时间基准 
 		Time_Base++;
+
+		RUN_Speed_Control();				//运行速度控制
+		IMU_Z_Angle_Get();					//IMU姿态获取
+		Mileage_Int_Compute();				//里程累计
 		
 		//5ms延时任务
 		Encoder_Compute();					//计算编码器输入频率
 		Encoder_Input_Frequiency_Filter();	//编码器输入频率滤波
 		Encoder_Speed_Compute();			//编码器速度计算
-		Motor_Speed_Control();				//电机速度控制，PID内环
+		Motor_Speed_Control();					//电机速度控制，PID内环
+
+		//IMU姿态解析
+		IMU_GET_Data();
 		
 		//10ms延时任务
 		if(Time_Base % 2 == 0)
 		{
-			RUN_Control();					//运行控制
-			Scan_Line_Control();			//巡线控制
+			Grayscale_ADC_Map_Compute();	//灰度传感器ADC映射计算
+			//RUN_Control();				//运行控制
+			//根据RUN_Parm.Control_State状态切换控制方式
+			if(RUN_Parm.Control_State == Direct_Control)
+			{	//直接控制模式
+				// Motor_Control_One(M1,Motor_Control_Parm.M1,Motor_Control_Parm.Motor1_Speed);
+				// Motor_Control_One(M2,Motor_Control_Parm.M2,Motor_Control_Parm.Motor1_Speed);
+				// Motor_Control_One(M3,Motor_Control_Parm.M3,Motor_Control_Parm.Motor1_Speed);
+				// Motor_Control_One(M4,Motor_Control_Parm.M4,Motor_Control_Parm.Motor1_Speed);
+			}
+			else if(RUN_Parm.Control_State == ScanLine_Control)
+				Scan_Line_Control();			//巡线控制
+			else if(RUN_Parm.Control_State == Angle_Control)
+				Angle_Patrol_Control();			//角度跟随控制
+
 			Servo_Control();				//舵机控制
 		}
 		//1000ms延时任务
@@ -193,6 +209,37 @@ void Slow_Compute_Task(void *argument)
 		}
 		Time_Base %= 200;	//限位
 	}
+}
+
+/** @brief	系统运行控制任务
+  * @note	阻塞式运行控制程序
+  **/
+void RUN_Control_Task(void *argument)
+{
+	for(;;)
+	{
+		//系统运行控制任务
+		RUN_System_Control();
+		osDelay(1);
+	}
+}
+
+/** @brief	GPIO中断触发任务
+  * @note	阻塞式等待中断触发信号
+  **/
+void GPIO_IT_Trigger_Task(void *argument)
+{
+  uint32_t pin_number;
+
+  for(;;)
+  {
+    //阻塞等待中断回调发送的消息
+    if(osMessageQueueGet(GPIO_Tigger_StateHandle, &pin_number, NULL, osWaitForever) == osOK)
+    {
+		//GPIO中断控制
+		GPIO_Trigger_Control(pin_number);
+    }
+  }
 }
 
 /** @brief	串口调试任务

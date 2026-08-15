@@ -63,10 +63,14 @@ typedef struct
 //巡线控制PID结构体
 extern PID_Positional Line_Patrol_PID;	
 
+//角度跟随控制PID
+extern PID_Positional	Angle_Patrol_PID;
+
 
 void PID_Parameter_Init(void);							//PID参数初始化
 void Motor_Speed_Control(void);							//电机速度控制
 void Scan_Line_Control(void);							//巡线控制
+void Angle_Patrol_Control(void);						//角度跟随控制
 
 void PID_Incremental_Compute(PID_Incremental* Pid);		//增量式PID运算函数
 void PID_Positional_Compute(PID_Positional*	Pid);		//位置式PID运算函数

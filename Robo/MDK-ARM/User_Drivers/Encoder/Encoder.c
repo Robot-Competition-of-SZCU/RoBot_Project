@@ -4,7 +4,7 @@
 //	***	*
 //  write by Ideal_Fox
 //  Affiliated to Suzhou City University
-//  Revision made on July 10th, 2026
+//  Revision made on Aug 11th, 2026
 ///////////////////////////////////////
 //	文件介绍：
 //		该文件为编码器采集源文件
@@ -90,7 +90,19 @@ void Encoder_Compute(void)
 		Frequiency[i] = CCR_Input_Pulse[i] / Input_Capture_Cycle;
 		
 	//复位差值
-		CCR_Input_Pulse[7] = 0;
+	CCR_Input_Pulse[7] = 0;
+		
+	//装载触发数
+	Encoder1.Pulse = CCR_Input_Pulse[0] + CCR_Input_Pulse[1];
+	Encoder2.Pulse = CCR_Input_Pulse[2] + CCR_Input_Pulse[3];
+	Encoder3.Pulse = CCR_Input_Pulse[4] + CCR_Input_Pulse[5];
+	Encoder4.Pulse = CCR_Input_Pulse[6] + CCR_Input_Pulse[7];
+	
+	//累计触发数
+	Encoder1.Pulse_Int += Encoder1.Pulse;
+	Encoder2.Pulse_Int += Encoder2.Pulse;
+	Encoder3.Pulse_Int += Encoder3.Pulse;
+	Encoder4.Pulse_Int += Encoder4.Pulse;
 	
 	//装载频率
 	Encoder1.Actual_Frequiency = Frequiency[0] + Frequiency[1];
@@ -138,6 +150,18 @@ void Encoder_Speed_Compute(void)
 	Encoder2.Speed = Encoder2.RMP_S * Length_Of_Each_Circle;
 	Encoder3.Speed = Encoder3.RMP_S * Length_Of_Each_Circle;
 	Encoder4.Speed = Encoder4.RMP_S * Length_Of_Each_Circle;
+	
+	//累计旋转圈数
+	Encoder1.RMP_Int += Encoder1.RMP_S * Input_Capture_Cycle;
+	Encoder2.RMP_Int += Encoder2.RMP_S * Input_Capture_Cycle;
+	Encoder3.RMP_Int += Encoder3.RMP_S * Input_Capture_Cycle;
+	Encoder4.RMP_Int += Encoder4.RMP_S * Input_Capture_Cycle;
+	
+	//累计行进距离
+	Encoder1.RUN_Int += Encoder1.Speed * Input_Capture_Cycle;
+	Encoder2.RUN_Int += Encoder2.Speed * Input_Capture_Cycle;
+	Encoder3.RUN_Int += Encoder3.Speed * Input_Capture_Cycle;
+	Encoder4.RUN_Int += Encoder4.Speed * Input_Capture_Cycle;
 }
 
 

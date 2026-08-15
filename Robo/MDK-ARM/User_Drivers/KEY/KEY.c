@@ -192,9 +192,9 @@ void KEY_Polling_Function(void)
   **/
 KEY_Tigger_State Get_Key_State(KEY_Encode KEY_X)
 {
-	char KEY_Num_Buffer;
+	KEY_Tigger_State KEY_Num_Buffer;
 	KEY_Num_Buffer = KEY_Num[KEY_X];
-	KEY_Num[KEY_X] = 0;
+	KEY_Num[KEY_X] = NO_Tigger;
 	return (KEY_Tigger_State)KEY_Num_Buffer;
 }
 

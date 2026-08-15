@@ -73,16 +73,6 @@ void Error_Handler(void);
 #define Digital_IN10_GPIO_Port GPIOF
 #define Digital_IN11_Pin GPIO_PIN_2
 #define Digital_IN11_GPIO_Port GPIOF
-#define Digital_IN12_Pin GPIO_PIN_3
-#define Digital_IN12_GPIO_Port GPIOF
-#define Digital_IN13_Pin GPIO_PIN_4
-#define Digital_IN13_GPIO_Port GPIOF
-#define Digital_IN14_Pin GPIO_PIN_5
-#define Digital_IN14_GPIO_Port GPIOF
-#define Digital_IN15_Pin GPIO_PIN_6
-#define Digital_IN15_GPIO_Port GPIOF
-#define Digital_IN16_Pin GPIO_PIN_7
-#define Digital_IN16_GPIO_Port GPIOF
 #define Rocker_UP_Pin GPIO_PIN_11
 #define Rocker_UP_GPIO_Port GPIOF
 #define Rocker_Right_Pin GPIO_PIN_12

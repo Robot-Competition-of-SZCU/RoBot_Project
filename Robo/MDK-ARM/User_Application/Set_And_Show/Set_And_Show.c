@@ -4,7 +4,7 @@
 //	***	*
 //  write by Ideal_Fox
 //  Affiliated to Suzhou City University
-//  Revision made on July 15th, 2026
+//  Revision made on Aug 11th, 2026
 ///////////////////////////////////////
 //	文件介绍：
 //		该文件为设置与显示源文件
@@ -21,9 +21,11 @@
 #include "Grayscale_ADC.h"
 #include "Flash.h"
 #include "Servo.h"
+#include "Encoder.h"
 
 #include "Control.h"
 #include "PID.h"
+#include "IMU.h"
 
 //系统菜单结构体
 struct Menu Menu_Parm;
@@ -94,6 +96,13 @@ void System_Menu_Control_And_Show(void)
 										//三级PID设置菜单控制与显示
 										Menu_Level3_PID_Set(R_KEY1,R_KEY2,R_Rocker_UP,R_Rocker_Down);
 										break;
+								case Encoder_View:
+										//三级编码器参数显示
+										Menu_Level3_Encoder_View(R_KEY2,R_Rocker_Right,R_Rocker_Left,R_Rocker_UP,R_Rocker_Down);
+										break;
+								case IMU_View:
+										Menu_Level3_IMU_View(R_KEY2);
+										break;
 							}
 							break;
 					case Scan_Line_Set:
@@ -163,6 +172,10 @@ void System_Menu_Control_And_Show(void)
 											case Base_Speed_Set:
 												//四级基础速度设置
 												Menu_Level4_Speed_Set(R_KEY2,R_Rocker_UP,R_Rocker_Down,R_Rocker_Right,R_Rocker_Left);
+												break;
+											case Accelerated_Speed_Set:
+												//四级加速度设置
+												Menu_Level4_Accelerated_Speed_Set(R_KEY2,R_Rocker_UP,R_Rocker_Down,R_Rocker_Right,R_Rocker_Left);
 												break;
 										}
 										break;
@@ -297,13 +310,13 @@ void Menu_Level2_RUN_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigger_
 		switch(Menu_Pointer)
 		{
 			//切换控制状态
-			case 0:	RUN_Parm.RUN_State = !RUN_Parm.RUN_State;
+			case 0:	RUN_Parm.RUN_Control = !RUN_Parm.RUN_Control;
 					break;
 		}
 	}
 
 	//菜单显示
-	if(RUN_Parm.RUN_State)
+	if(RUN_Parm.RUN_Control)
 		OLED_ShowString(0,0,"正在运行",OLED_8X16);
 	else
 		OLED_ShowString(0,0,"开始运行",OLED_8X16);
@@ -317,7 +330,6 @@ void Menu_Level2_RUN_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigger_
 		case 1:	OLED_ReverseArea(0,16,64,16);
 				break;
 	}
-
 }
 
 /** @brief	二级系统菜单控制与显示
@@ -333,12 +345,12 @@ void Menu_Level2_System_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigg
 	//摇杆下按，下翻选项
 	if(Rocker_Down)
 	{	Menu_Pointer++;							//菜单指针自增
-		if(Menu_Pointer == 2) Menu_Pointer = 0;	//超过长度，回到顶端
+		if(Menu_Pointer == 4) Menu_Pointer = 0;	//超过长度，回到顶端
 	}
 	//摇杆上按，上翻选项
 	if(Rocker_UP)
 	{	Menu_Pointer--;							//菜单指针自减
-		if(Menu_Pointer < 0) Menu_Pointer = 1;	//超过长度，回到底端
+		if(Menu_Pointer < 0) Menu_Pointer = 3;	//超过长度，回到底端
 	}
 	//按键2按下，退出当前菜单
 	if(KEY2)
@@ -357,6 +369,8 @@ void Menu_Level2_System_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigg
 	//菜单显示
 	OLED_ShowString(0,0,"速度设置",OLED_8X16);
 	OLED_ShowString(0,16,"PID设置",OLED_8X16);
+	OLED_ShowString(0,32,"编码器查看",OLED_8X16);
+	OLED_ShowString(0,48,"IMU数据查看",OLED_8X16);
 	
 	//控制指针指向部分高亮显示
 	switch(Menu_Pointer)
@@ -364,6 +378,10 @@ void Menu_Level2_System_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigg
 		case 0:	OLED_ReverseArea(0,0,64,16);
 				break;
 		case 1:	OLED_ReverseArea(0,16,64,16);
+				break;
+		case 2:	OLED_ReverseArea(0,32,80,16);
+				break;
+		case 3:	OLED_ReverseArea(0,48,88,16);
 				break;
 	}
 }
@@ -619,14 +637,14 @@ void Menu_Level3_Speed_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigge
 	{	//选择下翻
 		Menu_Pointer++;
 		//超过长度，回到顶端
-		if(Menu_Pointer == 3) Menu_Pointer = 0;	
+		if(Menu_Pointer == 4) Menu_Pointer = 0;	
 	}
 	//摇杆上按
 	if(Rocker_UP)
 	{	//选择上翻
 		Menu_Pointer--;
 		//超过长度，回到底端
-		if(Menu_Pointer < 0) Menu_Pointer = 2;
+		if(Menu_Pointer < 0) Menu_Pointer = 3;
 	}
 	//按键2按下
 	if(KEY2)
@@ -636,7 +654,7 @@ void Menu_Level3_Speed_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigge
 	//按键1按下，进入所选菜单
 	if(KEY1)
 	{	
-		if(Menu_Pointer == 2)
+		if(Menu_Pointer == 3)
 		{
 			//flash写数据
 			OLED_Show_And_Set_Write_Flash();
@@ -651,17 +669,20 @@ void Menu_Level3_Speed_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigge
 
 	//菜单显示
 	OLED_ShowString(0,0,"基础速度",OLED_8X16);
-	OLED_ShowString(0,16,"转向速度",OLED_8X16);
-	OLED_ShowString(0,32,"是否存储参数→",OLED_8X16);
+	OLED_ShowString(0,16,"加速度",OLED_8X16);
+	OLED_ShowString(0,32,"转向速度",OLED_8X16);
+	OLED_ShowString(0,48,"是否存储参数→",OLED_8X16);
 
 	//控制指针指向的参数高亮显示
 	switch(Menu_Pointer)
 	{	
 		case 0:	OLED_ReverseArea(0,0,64,16);
 				break;
-		case 1:	OLED_ReverseArea(0,16,64,16);
+		case 1:	OLED_ReverseArea(0,16,48,16);
 				break;
-		case 2:	OLED_ReverseArea(0,32,112,16);
+		case 2:	OLED_ReverseArea(0,32,64,16);
+				break;
+		case 3:	OLED_ReverseArea(0,48,112,16);
 		break;
 	}
 }
@@ -714,6 +735,154 @@ void Menu_Level3_PID_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigger_
 		case 1:	OLED_ReverseArea(0,16,48,16);
 				break;
 	}
+}
+
+/** @brief	三级编码器参数显示
+  * @param	KEY2		按键2
+  * @param	Rocker_Right	摇杆上
+  * @param	Rocker_Left	摇杆下
+  * @note	通过该函数，用户可使用板载按键与OLED屏幕实现查看系统部分参数以及对系统执行部分控制
+  **/
+void Menu_Level3_Encoder_View(KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_Right,KEY_Tigger_State Rocker_Left,KEY_Tigger_State Rocker_UP,KEY_Tigger_State Rocker_Down)
+{
+	static int Menu_Pointer = 0;		//菜单指针
+	//按键2按下
+	if(KEY2)
+	{	//菜单等级-1
+		Menu_Parm.Menu_Level--;
+	}
+	//摇杆右按
+	if(Rocker_Right)
+	{	//选择下翻
+		Menu_Pointer++;
+		//超过长度，回到顶端
+		if(Menu_Pointer > 5)
+			{if(Menu_Pointer == 13) Menu_Pointer = 10;}
+		else
+			if(Menu_Pointer == 3) Menu_Pointer = 0;	
+	}
+	//摇杆左按
+	if(Rocker_Left)
+	{	//选择上翻
+		Menu_Pointer--;
+		//超过长度，回到底端
+		if(Menu_Pointer > 5)
+			{if(Menu_Pointer < 10) Menu_Pointer = 12;}
+		else
+			if(Menu_Pointer < 0) Menu_Pointer = 2;
+	}
+	//摇杆下按
+	if(Rocker_Down)
+	{
+		//切换显示
+		if(Menu_Pointer < 5)
+			Menu_Pointer += 10;
+	}
+	if(Rocker_UP)
+	{
+		if(Menu_Pointer > 5)
+			Menu_Pointer -= 10;
+	}
+
+	//菜单显示
+	OLED_ShowString(0,0,"脉冲",OLED_8X16);
+	OLED_ShowString(48,0,"旋转",OLED_8X16);
+	OLED_ShowString(96,0,"线速",OLED_8X16);
+	OLED_ShowString(0,16,"累计",OLED_8X16);
+	OLED_ShowString(48,16,"累计",OLED_8X16);
+	OLED_ShowString(96,16,"累计",OLED_8X16);
+
+	OLED_ShowChar(0,32,'M',OLED_6X8);
+	OLED_ShowChar(0,40,'1',OLED_6X8);
+	OLED_ShowChar(0,48,'M',OLED_6X8);
+	OLED_ShowChar(0,56,'2',OLED_6X8);
+	OLED_ShowChar(8,32,':',OLED_8X16);
+	OLED_ShowChar(8,48,':',OLED_8X16);
+
+	OLED_ShowChar(64,32,'M',OLED_6X8);
+	OLED_ShowChar(64,40,'3',OLED_6X8);
+	OLED_ShowChar(64,48,'M',OLED_6X8);
+	OLED_ShowChar(64,56,'4',OLED_6X8);
+	OLED_ShowChar(72,32,':',OLED_8X16);
+	OLED_ShowChar(72,48,':',OLED_8X16);
+
+	//显示不同参数
+	switch(Menu_Pointer)
+	{
+		//实时脉冲
+		case 0:	OLED_Printf(16,32,OLED_8X16,"%5d",Encoder1.Pulse);
+				OLED_Printf(16,48,OLED_8X16,"%5d",Encoder2.Pulse);
+				OLED_Printf(80,32,OLED_8X16,"%5d",Encoder3.Pulse);
+				OLED_Printf(80,48,OLED_8X16,"%5d",Encoder4.Pulse);
+				break;
+		//实时旋转圈数
+		case 1:	OLED_Printf(16,32,OLED_8X16,"%5.2f",Encoder1.RMP_S);
+				OLED_Printf(16,48,OLED_8X16,"%5.2f",Encoder2.RMP_S);
+				OLED_Printf(80,32,OLED_8X16,"%5.2f",Encoder3.RMP_S);
+				OLED_Printf(80,48,OLED_8X16,"%5.2f",Encoder4.RMP_S);
+				break;
+		//实时线速度
+		case 2:	OLED_Printf(16,32,OLED_8X16,"%5.1f",Encoder1.Speed);
+				OLED_Printf(16,48,OLED_8X16,"%5.1f",Encoder2.Speed);
+				OLED_Printf(80,32,OLED_8X16,"%5.1f",Encoder3.Speed);
+				OLED_Printf(80,48,OLED_8X16,"%5.1f",Encoder4.Speed);
+				break;
+
+		//脉冲累计
+		case 10:OLED_Printf(16,32,OLED_8X16,"%5d",Encoder1.Pulse_Int);
+				OLED_Printf(16,48,OLED_8X16,"%5d",Encoder2.Pulse_Int);
+				OLED_Printf(80,32,OLED_8X16,"%5d",Encoder3.Pulse_Int);
+				OLED_Printf(80,48,OLED_8X16,"%5d",Encoder4.Pulse_Int);
+				break;
+		//旋转圈数累计
+		case 11:OLED_Printf(16,32,OLED_8X16,"%5.1f",Encoder1.RMP_Int);
+				OLED_Printf(16,48,OLED_8X16,"%5.1f",Encoder2.RMP_Int);
+				OLED_Printf(80,32,OLED_8X16,"%5.1f",Encoder3.RMP_Int);
+				OLED_Printf(80,48,OLED_8X16,"%5.1f",Encoder4.RMP_Int);
+				break;
+		//行进距离累计
+		case 12:OLED_Printf(16,32,OLED_8X16,"%5.1f",Encoder1.RUN_Int);
+				OLED_Printf(16,48,OLED_8X16,"%5.1f",Encoder2.RUN_Int);
+				OLED_Printf(80,32,OLED_8X16,"%5.1f",Encoder3.RUN_Int);
+				OLED_Printf(80,48,OLED_8X16,"%5.1f",Encoder4.RUN_Int);
+				break;
+	}
+
+	//控制指针指向的参数高亮显示
+	switch(Menu_Pointer)
+	{	
+		case 0:	OLED_ReverseArea(0,0,32,16);
+				break;
+		case 1:	OLED_ReverseArea(48,0,32,16);
+				break;
+		case 2:	OLED_ReverseArea(96,0,32,16);
+				break;
+
+		case 10:OLED_ReverseArea(0,16,32,16);
+				break;
+		case 11:OLED_ReverseArea(48,16,32,16);
+				break;
+		case 12:OLED_ReverseArea(96,16,32,16);
+				break;
+	}
+}
+
+/** @brief	三级IMU数据显示
+  * @param	KEY2		按键2
+  * @note	通过该函数，用户可使用板载按键与OLED屏幕实现查看系统部分参数以及对系统执行部分控制
+  **/
+void Menu_Level3_IMU_View(KEY_Tigger_State KEY2)
+{
+	//按键2按下
+	if(KEY2)
+	{	//菜单等级-1
+		Menu_Parm.Menu_Level--;
+	}
+	//参数显示
+	OLED_Printf(0,0,OLED_8X16,"IMU_X: %6.2f",IMU_Data.IMU_Angle_X);
+	OLED_Printf(0,16,OLED_8X16,"IMU_Y: %6.2f",IMU_Data.IMU_Angle_Y);
+	OLED_Printf(0,32,OLED_8X16,"IMU_Z: %6.2f",IMU_Data.IMU_Angle_Z);
+
 }
 
 /** @brief	三级灰度参数查看控制与显示
@@ -1182,7 +1351,7 @@ void Menu_Level3_Task_High_Com(KEY_Tigger_State KEY2)
 	OLED_Printf(0,48,OLED_8X16,"%d",xTaskDetails_High_Compute.usStackHighWaterMark);
 }
 
-/** @brief	四级速度设置与显示
+/** @brief	四级基础速度设置与显示
   * @param	KEY2		按键2
   * @note	通过该函数，用户可使用板载按键与OLED屏幕实现查看系统部分参数以及对系统执行部分控制
   **/
@@ -1190,7 +1359,7 @@ void Menu_Level4_Speed_Set(KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_
 {
 	char Show_Num[8];
 	//字符化参数
-	sprintf(Show_Num,"%05.2f",Motor_Control_Parm.Base_Speed_Set);
+	sprintf(Show_Num,"%05.2f",Motor_Control_Parm.Base_High_Speed_Set);
 
 	 static int Menu_Pointer = 0;		//菜单指针
 	//摇杆左按
@@ -1198,7 +1367,7 @@ void Menu_Level4_Speed_Set(KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_
 	{	//选择左移
 		Menu_Pointer--;
 		//超过长度，回到顶端
-	 	if(Menu_Pointer <= 0) Menu_Pointer = 3;	
+	 	if(Menu_Pointer < 0) Menu_Pointer = 3;	
 	}
 	//摇杆右按
 	 if(Rocker_Right)
@@ -1218,7 +1387,7 @@ void Menu_Level4_Speed_Set(KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_
 		else
 		{
 			Show_Num[Menu_Pointer + 1]++;
-			if(Show_Num[Menu_Pointer + 1] > '9') Show_Num[Menu_Pointer] = '0';
+			if(Show_Num[Menu_Pointer + 1] > '9') Show_Num[Menu_Pointer + 1] = '0';
 		}
 	}
 	//摇杆上按
@@ -1232,7 +1401,7 @@ void Menu_Level4_Speed_Set(KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_
 		else
 		{
 			Show_Num[Menu_Pointer + 1]--;
-			if(Show_Num[Menu_Pointer + 1] < '0') Show_Num[Menu_Pointer] = '9';
+			if(Show_Num[Menu_Pointer + 1] < '0') Show_Num[Menu_Pointer + 1] = '9';
 		}
 	}
 	//按键2按下
@@ -1261,7 +1430,89 @@ void Menu_Level4_Speed_Set(KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_
 	}
 
 	//参数化字符
-	sscanf(Show_Num,"%f",&Motor_Control_Parm.Base_Speed_Set);
+	sscanf(Show_Num,"%f",&Motor_Control_Parm.Base_High_Speed_Set);
+}
+
+/** @brief	四级加速度设置与显示
+  * @param	KEY2		按键2
+  * @note	通过该函数，用户可使用板载按键与OLED屏幕实现查看系统部分参数以及对系统执行部分控制
+  **/
+void Menu_Level4_Accelerated_Speed_Set(KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_Tigger_State Rocker_Down,KEY_Tigger_State Rocker_Right,KEY_Tigger_State Rocker_Left)
+{
+	char Show_Num[8];
+	//字符化参数
+	sprintf(Show_Num,"%05.2f",Motor_Control_Parm.Accelerated_Speed);
+
+	 static int Menu_Pointer = 0;		//菜单指针
+	//摇杆左按
+	if(Rocker_Left)
+	{	//选择左移
+		Menu_Pointer--;
+		//超过长度，回到顶端
+	 	if(Menu_Pointer < 0) Menu_Pointer = 3;	
+	}
+	//摇杆右按
+	 if(Rocker_Right)
+	 {	//选择右移
+		Menu_Pointer++;
+		//超过长度，回到顶端
+	 	if(Menu_Pointer >= 4) Menu_Pointer = 0;	
+	 }
+	//摇杆下按
+	if(Rocker_Down)
+	{	//所选参数加
+		if(Menu_Pointer<=1)
+		{
+			Show_Num[Menu_Pointer]++;
+			if(Show_Num[Menu_Pointer] > '9') Show_Num[Menu_Pointer] = '0';
+		}
+		else
+		{
+			Show_Num[Menu_Pointer + 1]++;
+			if(Show_Num[Menu_Pointer + 1] > '9') Show_Num[Menu_Pointer + 1] = '0';
+		}
+	}
+	//摇杆上按
+	if(Rocker_UP)
+	{	//所选参数减
+		if(Menu_Pointer<=1)
+		{
+			Show_Num[Menu_Pointer]--;
+			if(Show_Num[Menu_Pointer] < '0') Show_Num[Menu_Pointer] = '9';
+		}
+		else
+		{
+			Show_Num[Menu_Pointer + 1]--;
+			if(Show_Num[Menu_Pointer + 1] < '0') Show_Num[Menu_Pointer + 1] = '9';
+		}
+	}
+	//按键2按下
+	if(KEY2)
+	{
+		//菜单等级-1
+		Menu_Parm.Menu_Level--;
+	}
+
+	//菜单显示
+	OLED_ShowString(16,0,"加速度",OLED_8X16);
+	OLED_ShowString(24,32,"RMP/S",OLED_8X16);
+	OLED_ShowString(24,16,Show_Num,OLED_8X16);
+	
+	//控制指针指向显示,指向的参数高亮显示
+	switch(Menu_Pointer)
+	{	
+		case 0:	OLED_ReverseArea(24,16,8,16);
+				break;
+		case 1:	OLED_ReverseArea(32,16,8,16);
+				break;
+		case 2:	OLED_ReverseArea(48,16,8,16);
+				break;
+		case 3:	OLED_ReverseArea(56,16,8,16);
+				break;
+	}
+
+	//参数化字符
+	sscanf(Show_Num,"%f",&Motor_Control_Parm.Accelerated_Speed);
 }
 
 /** @brief	四级电机转速PID显示

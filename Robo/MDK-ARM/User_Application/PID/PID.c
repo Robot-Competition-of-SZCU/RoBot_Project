@@ -16,6 +16,7 @@
 #include "Motor.h"
 #include "Grayscale_ADC.h"
 
+#include "IMU.h"
 #include "Control.h"
 
 //电机PID控制结构体
@@ -26,6 +27,9 @@ PID_Incremental PID_Motor4;
 
 //巡线控制PID结构体
 PID_Positional Line_Patrol_PID;	
+
+//角度跟随控制PID
+PID_Positional	Angle_Patrol_PID;
 
 /** @brief	PID参数初始化
   **/
@@ -63,12 +67,65 @@ void PID_Parameter_Init(void)
 
 	//巡线PID参数设置
 	Line_Patrol_PID.Kp = 0.08f;			//比例系数
-	// Line_Patrol_PID.Ki = 0.0f;			//积分系数
-	// Line_Patrol_PID.Kd = 0.0f;			//微分系数
+	// Line_Patrol_PID.Ki = 0.0f;		//积分系数
+	// Line_Patrol_PID.Kd = 0.0f;		//微分系数
 	Line_Patrol_PID.ErrorInt_Min = -1; 	//积分最小限幅
 	Line_Patrol_PID.ErrorInt_Max = +1;	//积分最大限幅
 	Line_Patrol_PID.Out_Min = -1;		//输出最小限幅
 	Line_Patrol_PID.Out_Max = 1;		//输出最大限幅
+
+	//角度跟随PID参数设置，位置式PID
+	Angle_Patrol_PID.Kp 		= 0.025f;	//比例系数
+	Angle_Patrol_PID.Ki 		= 0.0f;		//积分系数
+	Angle_Patrol_PID.Kd 		= 0;		//微分系数
+	Line_Patrol_PID.ErrorInt_Min = -0.5f; 	//积分最小限幅
+	Line_Patrol_PID.ErrorInt_Max = +0.5f;	//积分最大限幅
+	Angle_Patrol_PID.Out_Min 	= -1;		//输出最小限幅
+	Angle_Patrol_PID.Out_Max 	= 1;		//输出最大限幅
+}
+
+/** @brief	角度跟随控制
+  * @note	外环PID解算，输出速度
+  **/
+void Angle_Patrol_Control(void)
+{
+	//计算相对角度差
+	float Angle = RUN_Parm.Target_Angle - IMU_Data.IMU_Angle_Z;
+	if(Angle>180) Angle -= 360;
+	if(Angle<-180)Angle +=360;
+
+
+	//计算差速比
+	Angle_Patrol_PID.Error_Last = Angle_Patrol_PID.Error_Now;	//上次误差更新
+	Angle_Patrol_PID.Error_Now = Angle;							//本次误差更新
+	PID_Positional_Compute(&Angle_Patrol_PID);					//PID计算
+	
+	//电机速度混合控制
+	if(Motor_Control_Parm.Base_Speed)
+	{	//基础速度不为0，执行控制
+		Motor_Control_Parm.Motor1_Speed = Motor_Control_Parm.Base_Speed + Angle_Patrol_PID.Out * Motor_Control_Parm.Base_Speed;
+		Motor_Control_Parm.Motor2_Speed = Motor_Control_Parm.Base_Speed + Angle_Patrol_PID.Out * Motor_Control_Parm.Base_Speed;
+		Motor_Control_Parm.Motor3_Speed = Motor_Control_Parm.Base_Speed - Angle_Patrol_PID.Out * Motor_Control_Parm.Base_Speed;
+		Motor_Control_Parm.Motor4_Speed = Motor_Control_Parm.Base_Speed - Angle_Patrol_PID.Out * Motor_Control_Parm.Base_Speed;
+		
+		if(Motor_Control_Parm.Motor1_Speed < 0) Motor_Control_Parm.Motor1_Speed = 0;
+		if(Motor_Control_Parm.Motor2_Speed < 0) Motor_Control_Parm.Motor2_Speed = 0;
+		if(Motor_Control_Parm.Motor3_Speed < 0) Motor_Control_Parm.Motor3_Speed = 0;
+		if(Motor_Control_Parm.Motor4_Speed < 0) Motor_Control_Parm.Motor4_Speed = 0;
+		
+		if(Motor_Control_Parm.Motor1_Speed > 10) Motor_Control_Parm.Motor1_Speed = 10;
+		if(Motor_Control_Parm.Motor2_Speed > 10) Motor_Control_Parm.Motor2_Speed = 10;
+		if(Motor_Control_Parm.Motor3_Speed > 10) Motor_Control_Parm.Motor3_Speed = 10;
+		if(Motor_Control_Parm.Motor4_Speed > 10) Motor_Control_Parm.Motor4_Speed = 10;
+		
+	}
+	else
+	{	//基础速度为0，取消控制
+		Motor_Control_Parm.Motor1_Speed = 0;
+		Motor_Control_Parm.Motor2_Speed = 0;
+		Motor_Control_Parm.Motor3_Speed = 0;
+		Motor_Control_Parm.Motor4_Speed = 0;
+	}
 }
 
 /** @brief	巡线控制
@@ -147,6 +204,12 @@ void Motor_Speed_Control(void)
 	PID_Incremental_Compute(&PID_Motor3);
 	PID_Incremental_Compute(&PID_Motor4);
 	
+	//输出死区控制，目标值为0，则关断输出
+	if(PID_Motor1.Target == 0) PID_Motor1.Out = 0;
+	if(PID_Motor2.Target == 0) PID_Motor2.Out = 0;
+	if(PID_Motor3.Target == 0) PID_Motor3.Out = 0;
+	if(PID_Motor4.Target == 0) PID_Motor4.Out = 0;
+	
 	//执行控制
 	Motor_Control_One(M1,Motor_Control_Parm.M1,PID_Motor1.Out);
 	Motor_Control_One(M2,Motor_Control_Parm.M2,PID_Motor2.Out);
@@ -176,9 +239,6 @@ void PID_Incremental_Compute(PID_Incremental* Pid)
 	
 	//输出计算
 	Pid->Out += (Pid->Kp_Out + Pid->Ki_Out - Pid->Kd_Out);
-	
-	//输出死区控制，目标值为0，则关断输出
-	if(Pid->Target == 0) Pid->Out = 0;
 	
 	//输出限幅
 	if(Pid->Out > Pid->Out_Max)	Pid->Out = Pid->Out_Max;

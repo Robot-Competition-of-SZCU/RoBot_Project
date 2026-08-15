@@ -4,7 +4,7 @@
 //	***	*
 //  write by Ideal_Fox
 //  Affiliated to Suzhou City University
-//  Revision made on July 15th, 2026
+//  Revision made on Aug 11th, 2026
 ///////////////////////////////////////
 //	文件介绍：
 //		该文件为设置与显示头文件
@@ -21,10 +21,21 @@
 		|					+-运行设置
 		|
 		+-二级系统设置菜单--+-三级速度设置菜单--+-基础速度设置
+		|					|					+-加速度设置
 		|					|					+-转向速度设置
+		|					|					+-参数存储
 		|					|						
 		|					+-三级PID设置菜单---+-轮子转速环PID
-		|										+-巡线调控环PID
+		|					|					+-巡线调控环PID
+		|					|
+		|					+-三级编码器参数查看菜单--+-实时脉冲数
+		|					|						+-脉冲累计
+		|					|						+-实时旋转速度
+		|					|						+-旋转速度累计
+		|					|						+-实时线速度
+		|					|						+-线速度累计
+		|					|
+		|					+-三级IMU数据查看
 		|
 		+-二级巡线设置菜单--+-三级灰度参数查看菜单--+-校准值显示
 		|					|						+-实际值显示
@@ -72,40 +83,43 @@ typedef enum{
 
 //三级系统设置菜单
 typedef enum{
-	Speed_Set      = 0,		//速度设置
-	PID_Set        = 1,		//PID设置
+	Speed_Set = 0,	//速度设置
+	PID_Set,		//PID设置
+	Encoder_View,	//编码器查看
+	IMU_View,		//IMU数据查看
 }Menu_System_Set_L3;
 
 //三级巡线参数设置菜单
 typedef enum{
-	Gray_View      = 0,		//灰度参数查看
-	Gray_Calib     = 1,		//校准设置
+	Gray_View = 0,	//灰度参数查看
+	Gray_Calib,		//校准设置
 }Menu_Scan_Line_Set_L3;
 
 //三级舵机设置菜单
 typedef enum{
-	Servo_Set_	   = 0,		//舵机控制
+	Servo_Set_ = 0,	//舵机控制
 }Menu_Servo_Set_L3;
 
 //三级任务查看菜单
 typedef enum{
-	Task_LED       = 0,		//运行指示灯任务
-	Task_KEY_Sacn  = 1,		//按键扫描任务
-	Task_Show_Set  = 2,		//设置与显示任务
-	Task_UART_Debug= 3,		//串口调试任务
-	Task_Slow_Com  = 4,		//低速计算任务
-	Task_High_Com  = 5,		//高速计算任务	
+	Task_LED = 0,	//运行指示灯任务
+	Task_KEY_Sacn,	//按键扫描任务
+	Task_Show_Set,	//设置与显示任务
+	Task_UART_Debug,//串口调试任务
+	Task_Slow_Com,	//低速计算任务
+	Task_High_Com,	//高速计算任务	
 }Menu_Task_Show_L3;
 
 typedef enum{
 	Base_Speed_Set = 0,		//基础速度设置
+	Accelerated_Speed_Set,	//加速度设置
 	Turn_Speed_Set			//转向速度设置
 }Menu_Speed_Set_L4;
 
 //四级PID设置菜单
 typedef enum{
-	Motor_Speed_PID = 0,	//电机转速PID
-	Line_P_PID				//巡线PID
+	Motor_Speed_PID = 0,//电机转速PID
+	Line_P_PID			//巡线PID
 }Menu_PID_Set_L4;
 
 //系统菜单结构体
@@ -139,6 +153,10 @@ void Menu_Level2_Task_Show(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigge
 void Menu_Level3_Speed_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_Tigger_State Rocker_Down);
 //三级PID设置菜单控制与显示
 void Menu_Level3_PID_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_Tigger_State Rocker_Down);
+//三级编码器参数显示
+void Menu_Level3_Encoder_View(KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_Right,KEY_Tigger_State Rocker_Left,KEY_Tigger_State Rocker_UP,KEY_Tigger_State Rocker_Down);
+//三级IMU数据显示
+void Menu_Level3_IMU_View(KEY_Tigger_State KEY2);
 //三级灰度参数查看控制与显示
 void Menu_Level3_Gray_View(KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_Right,KEY_Tigger_State Rocker_Left);
 //三级灰度校准控制与显示
@@ -153,8 +171,10 @@ void Menu_Level3_Task_UART_Debug(KEY_Tigger_State KEY2);	//三级串口调试任
 void Menu_Level3_Task_Slow_Com(KEY_Tigger_State KEY2);		//三级低速计算任务显示
 void Menu_Level3_Task_High_Com(KEY_Tigger_State KEY2);		//三级高速计算任务显示
 
-//四级速度设置与显示
+//四级基础速度设置与显示
 void Menu_Level4_Speed_Set(KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_Tigger_State Rocker_Down,KEY_Tigger_State Rocker_Right,KEY_Tigger_State Rocker_Left);			
+//四级加速度设置与显示
+void Menu_Level4_Accelerated_Speed_Set(KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_Tigger_State Rocker_Down,KEY_Tigger_State Rocker_Right,KEY_Tigger_State Rocker_Left);
 void Menu_Level4_Motor_Speed_PID(KEY_Tigger_State KEY2);	//四级电机转速PID显示
 void Menu_Level4_Line_Patrol_PID(KEY_Tigger_State KEY2);	//四级巡线PID显示
 

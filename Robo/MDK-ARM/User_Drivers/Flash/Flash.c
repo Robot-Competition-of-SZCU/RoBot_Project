@@ -39,7 +39,8 @@ HAL_StatusTypeDef Flash_Write(void)
 	//舵机数据
 	memcpy(&Flash_Save.Servo_EN_State,&Servo_State,sizeof(Servo_State));
 	//运行数据
-	memcpy(&Flash_Save.Base_Speed_Set,&Motor_Control_Parm.Base_Speed_Set,sizeof(float));
+	memcpy(&Flash_Save.Base_High_Speed_Set,&Motor_Control_Parm.Base_High_Speed_Set,sizeof(float));
+	memcpy(&Flash_Save.Accelerated_Speed,&Motor_Control_Parm.Accelerated_Speed,sizeof(float));
 	
 	HAL_StatusTypeDef status = HAL_OK;					//状态码
 	
@@ -108,5 +109,6 @@ void Flash_Read(void)
 	//舵机数据
 	memcpy(&Servo_State,&Flash_Save.Servo_EN_State,sizeof(Servo_State));
 	//运行数据
-	memcpy(&Motor_Control_Parm.Base_Speed_Set,&Flash_Save.Base_Speed_Set,sizeof(float));
+	memcpy(&Motor_Control_Parm.Base_High_Speed_Set,&Flash_Save.Base_High_Speed_Set,sizeof(float));
+	memcpy(&Motor_Control_Parm.Accelerated_Speed,&Flash_Save.Accelerated_Speed,sizeof(float));
 }

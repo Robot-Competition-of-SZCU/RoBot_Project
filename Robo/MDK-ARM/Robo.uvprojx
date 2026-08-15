@@ -340,7 +340,7 @@
               <MiscControls>--no-multibyte-chars</MiscControls>
               <Define>USE_HAL_DRIVER,STM32F407xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;./User_Drivers/LED;./User_Drivers/KEY;./User_Drivers/Grayscale_ADC;./User_Drivers/Servo;./User_Drivers/Motor;./User_Drivers/Encoder;./User_Drivers/UART;./User_Drivers/OLED;./User_Drivers/Flash;./User_Application/Control;./User_Application/User_Task;./User_Application/Interrupt;./User_Application/PID;./User_Application/Set_And_Show</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;./User_Drivers/LED;./User_Drivers/KEY;./User_Drivers/Grayscale_ADC;./User_Drivers/Servo;./User_Drivers/Motor;./User_Drivers/Encoder;./User_Drivers/UART;./User_Drivers/OLED;./User_Drivers/Flash;./User_Application/Control;./User_Application/User_Task;./User_Application/Interrupt;./User_Application/PID;./User_Application/Set_And_Show;./User_Application/IMU</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -1446,6 +1446,11 @@
               <FileType>1</FileType>
               <FilePath>.\User_Application\Set_And_Show\Set_And_Show.c</FilePath>
             </File>
+            <File>
+              <FileName>IMU.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\User_Application\IMU\IMU.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1467,5 +1472,14 @@
     </components>
     <files/>
   </RTE>
+
+  <LayerInfo>
+    <Layers>
+      <Layer>
+        <LayName>Robo</LayName>
+        <LayPrjMark>1</LayPrjMark>
+      </Layer>
+    </Layers>
+  </LayerInfo>
 
 </Project>
