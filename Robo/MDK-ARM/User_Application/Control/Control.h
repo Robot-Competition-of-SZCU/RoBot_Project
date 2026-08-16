@@ -82,6 +82,7 @@ struct RUN{
 	int Sensor_Middle;			//中部传感器触发状态
 	int Sensor_Left;			//左侧光电传感器触发状态
 	int Sensor_Right;			//右侧光电传感器触发状态
+	int Microswitch_State;		//微动开关状态
 
 	int Common_Traffic_Sign;	//通行指示牌序号
 };
@@ -90,7 +91,6 @@ extern struct RUN RUN_Parm;
 void RUN_Parm_Init(void);		//运行参数初始化
 void RUN_Speed_Control(void);	//运行速度控制
 
-void IMU_Z_Angle_Get(void);		//IMU姿态获取
 void Mileage_Int_Compute(void);	//里程累计函数
 
 void GPIO_Trigger_Control(uint32_t GPIO_Pin);	//GPIO中断触发任务
@@ -99,12 +99,12 @@ void Car_Turn_Control(Turn_Mode Mode,float Turn_Angle);	//转弯控制
 
 void RUN_System_Control(void);			//系统运行控制任务
 
-void RUN_Parm_Init(void);				//运行参数初始化
-void Path_Plan_Parm_Fill(void);			//路径计划参数装填
-void Path_PlanA_to_B_Parm_Fill(void);	//路径计划A_B通用参数装填，固定路径参数
-void Path_PlanA_B_Parm_Fill(void);		//路径计划A_B通用参数装填，固定路径参数
-void Path_Plan12_Parm_Fill(void);		//路径计划12通用参数装填，固定路径参数
+void Go_Up_Platform(void);				//上平台
+void Go_Down_Platform(void);			//下平台
 
+void Platform1_to_Platform2(void);				//平台1至平台2
+
+void Platform2_to_Scenic_Spot2(void);			//平台2至景点2
 
 
 #endif

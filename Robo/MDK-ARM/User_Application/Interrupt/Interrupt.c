@@ -21,7 +21,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     uint32_t pin_number = GPIO_Pin;
 
-    if (GPIO_Pin == GPIO_PIN_7 || GPIO_Pin == GPIO_PIN_6 || GPIO_Pin == GPIO_PIN_5)
+    if (GPIO_Pin == GPIO_PIN_7 || GPIO_Pin == GPIO_PIN_6 || GPIO_Pin == GPIO_PIN_5 || GPIO_Pin == GPIO_PIN_4 || GPIO_Pin == GPIO_PIN_3)
     {
         //CMSIS-RTOS v2消息队列接口可在中断中调用(超时参数必须为0)
         osMessageQueuePut(GPIO_Tigger_StateHandle, &pin_number, 0U, 0U);

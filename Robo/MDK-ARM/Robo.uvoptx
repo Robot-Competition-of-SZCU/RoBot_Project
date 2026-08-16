@@ -203,7 +203,7 @@
         <Ww>
           <count>9</count>
           <WinNumber>1</WinNumber>
-          <ItemText>RUN_Parm</ItemText>
+          <ItemText>RUN_Parm,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>10</count>

@@ -69,17 +69,15 @@ void User_Init(void)
 	RUN_Parm_Init();		//运行参数初始化
 	PID_Parameter_Init();	//PID参数初始化
 	
-	HAL_Delay(1000);
-	UART_Audio_Loud_Control(30);
-	HAL_Delay(20);
-	UART_Audio_Mode_Control();
-	HAL_Delay(20);
+	// HAL_Delay(1000);
+	// UART_Audio_Loud_Control(30);
+	// HAL_Delay(20);
+	// UART_Audio_Mode_Control();
+	// HAL_Delay(20);
 	//UART_Audio_Control(1);
 	
 	Motor_Start();
-	//Motor_Control_One(M1,Advance,10);
 	
-	Motor_Control_Parm.Motor1_Speed = 2;
 	//HAL_TIM_Base_Start_IT(&htim6);		//开启TIM6定时中断，间隔为1ms
 }
 
@@ -162,7 +160,6 @@ void Slow_Compute_Task(void *argument)
 		Time_Base++;
 
 		RUN_Speed_Control();				//运行速度控制
-		IMU_Z_Angle_Get();					//IMU姿态获取
 		Mileage_Int_Compute();				//里程累计
 		
 		//5ms延时任务
@@ -255,7 +252,7 @@ void UART_Debug_Task(void *argument)
 	{	//10ms阻塞延时
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 		
-		static char Send_Data[40];
+		// static char Send_Data[40];
 		
 		// memcpy(&Send_Data[0], &Grayscale_ADC_Buffer[0],2);
 		// memcpy(&Send_Data[2], &Grayscale_ADC_Buffer[1],2);
