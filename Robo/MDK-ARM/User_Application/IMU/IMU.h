@@ -13,6 +13,7 @@
 #define __IMU_H__
 
 #define IMU_Buffer_Length 64		//缓存区长度
+#define IMU_Angle_Z_Delta_Max 20.0f	//Z轴角度相邻帧最大允许增量，单位度
 
 extern uint8_t IMU_data_Buffer[IMU_Buffer_Length];	//IMU数据缓存区
 

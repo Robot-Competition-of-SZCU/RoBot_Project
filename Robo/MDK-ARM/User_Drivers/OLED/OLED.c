@@ -19,6 +19,7 @@
   */
 #include "stm32f4xx_hal.h"
 #include "spi.h"
+#include "i2c.h"
 
 #include "OLED.h"
 #include <string.h>
@@ -28,6 +29,11 @@
 
 //设置OLED驱动SPI为SPI2
 SPI_HandleTypeDef* holed_spi = &hspi2;
+
+//设置OLED驱动I2C为I2C2
+I2C_HandleTypeDef* holed_i2c = &hi2c2;
+
+OLED_Control_Mode OLED_Control;
 
 /**
   * 数据存储格式：
@@ -104,10 +110,18 @@ void OLED_SPI_SendByte(uint8_t Byte)
   */
 void OLED_WriteCommand(uint8_t Command)
 {
-	OLED_W_CS(0);					//拉低CS，开始通信
-	OLED_W_DC(0);					//拉低DC，表示即将发送命令
-	OLED_SPI_SendByte(Command);		//写入指定命令
-	OLED_W_CS(1);					//拉高CS，结束通信
+	//SPI控制模式
+	if(OLED_Control == SPI_Control_Mode)
+	{
+		OLED_W_CS(0);					//拉低CS，开始通信
+		OLED_W_DC(0);					//拉低DC，表示即将发送命令
+		OLED_SPI_SendByte(Command);		//写入指定命令
+		OLED_W_CS(1);					//拉高CS，结束通信
+	}
+	//I2C控制模式
+	else
+		//MemAddress为0x00表示命令，0x40表示数据（SSD1306 I2C控制字节）
+		HAL_I2C_Mem_Write(holed_i2c,OLED_I2C_Addr,0x00,I2C_MEMADD_SIZE_8BIT,&Command,1,100);
 }
 
 /**
@@ -118,10 +132,18 @@ void OLED_WriteCommand(uint8_t Command)
   */
 void OLED_WriteData(uint8_t *Data, uint8_t Count)
 {
-	OLED_W_CS(0);					//拉低CS，开始通信
-	OLED_W_DC(1);					//拉高DC，表示即将发送数据
-	HAL_SPI_Transmit(holed_spi,Data,Count,100);	//连续传输数据
-	OLED_W_CS(1);					//拉高CS，结束通信
+	//SPI控制模式
+	if(OLED_Control == SPI_Control_Mode)
+	{
+		OLED_W_CS(0);					//拉低CS，开始通信
+		OLED_W_DC(1);					//拉高DC，表示即将发送数据
+		HAL_SPI_Transmit(holed_spi,Data,Count,100);	//连续传输数据
+		OLED_W_CS(1);					//拉高CS，结束通信
+	}
+	//I2C控制模式
+	else
+		//MemAddress为0x00表示命令，0x40表示数据（SSD1306 I2C控制字节）
+		HAL_I2C_Mem_Write(holed_i2c,OLED_I2C_Addr,0x40,I2C_MEMADD_SIZE_8BIT,Data,Count,100);
 }
 
 /*硬件配置*********************/
@@ -134,6 +156,12 @@ void OLED_WriteData(uint8_t *Data, uint8_t Count)
   */
 void OLED_Init(void)
 {
+	//读取OLED选择模式
+	if(OLED_Select == 1)
+		OLED_Control = SPI_Control_Mode;
+	else
+		OLED_Control = I2C_Control_Mode;
+
 	//设置引脚默认电平
 	OLED_W_RES(1);
 	OLED_W_DC(1);

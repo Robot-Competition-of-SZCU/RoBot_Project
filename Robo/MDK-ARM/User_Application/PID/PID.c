@@ -31,6 +31,9 @@ PID_Positional Line_Patrol_PID;
 //角度跟随控制PID
 PID_Positional	Angle_Patrol_PID;
 
+//弧线转弯控制PID
+PID_Positional	Arc_Turn_PID;
+
 /** @brief	PID参数初始化
   **/
 void PID_Parameter_Init(void)
@@ -66,7 +69,7 @@ void PID_Parameter_Init(void)
 	PID_Motor4.DT		= 5;		//调控周期，单位ms
 
 	//巡线PID参数设置
-	Line_Patrol_PID.Kp = 0.08f;			//比例系数
+	Line_Patrol_PID.Kp = 0.12f;			//比例系数
 	// Line_Patrol_PID.Ki = 0.0f;		//积分系数
 	// Line_Patrol_PID.Kd = 0.0f;		//微分系数
 	Line_Patrol_PID.ErrorInt_Min = -1; 	//积分最小限幅
@@ -82,6 +85,15 @@ void PID_Parameter_Init(void)
 	Line_Patrol_PID.ErrorInt_Max = +0.5f;	//积分最大限幅
 	Angle_Patrol_PID.Out_Min 	= -1;		//输出最小限幅
 	Angle_Patrol_PID.Out_Max 	= 1;		//输出最大限幅
+
+	//弧线转弯PID参数设置，位置式PID
+	Arc_Turn_PID.Kp 		= 0.06f;	//比例系数
+	Arc_Turn_PID.Ki 		= 0.0f;		//积分系数
+	Arc_Turn_PID.Kd 		= 0.0f;		//微分系数
+	Arc_Turn_PID.ErrorInt_Min = -0.5f; 	//积分最小限幅
+	Arc_Turn_PID.ErrorInt_Max = +0.5f;	//积分最大限幅
+	Arc_Turn_PID.Out_Min 	= -1;		//输出最小限幅
+	Arc_Turn_PID.Out_Max 	= 1;		//输出最大限幅
 }
 
 /** @brief	角度跟随控制
@@ -128,6 +140,52 @@ void Angle_Patrol_Control(void)
 	}
 }
 
+/** @brief	反向角度跟随控制
+  * @note	外环PID解算，输出速度
+  **/
+void Angle_Patrol_Retreat_Control(void)
+{
+	//计算相对角度差
+	float Angle = RUN_Parm.Target_Angle - IMU_Data.IMU_Angle_Z;
+	if(Angle>180) Angle -= 360;
+	if(Angle<-180)Angle +=360;
+
+
+	//计算差速比
+	Angle_Patrol_PID.Error_Last = Angle_Patrol_PID.Error_Now;	//上次误差更新
+	Angle_Patrol_PID.Error_Now = Angle;							//本次误差更新
+	PID_Positional_Compute(&Angle_Patrol_PID);					//PID计算
+	
+	//电机速度混合控制
+	if(Motor_Control_Parm.Base_Speed)
+	{	//基础速度不为0，执行控制
+		Motor_Control_Parm.Motor1_Speed = Motor_Control_Parm.Base_Speed - Angle_Patrol_PID.Out * Motor_Control_Parm.Base_Speed;
+		Motor_Control_Parm.Motor2_Speed = Motor_Control_Parm.Base_Speed - Angle_Patrol_PID.Out * Motor_Control_Parm.Base_Speed;
+		Motor_Control_Parm.Motor3_Speed = Motor_Control_Parm.Base_Speed + Angle_Patrol_PID.Out * Motor_Control_Parm.Base_Speed;
+		Motor_Control_Parm.Motor4_Speed = Motor_Control_Parm.Base_Speed + Angle_Patrol_PID.Out * Motor_Control_Parm.Base_Speed;
+		
+		if(Motor_Control_Parm.Motor1_Speed < 0) Motor_Control_Parm.Motor1_Speed = 0;
+		if(Motor_Control_Parm.Motor2_Speed < 0) Motor_Control_Parm.Motor2_Speed = 0;
+		if(Motor_Control_Parm.Motor3_Speed < 0) Motor_Control_Parm.Motor3_Speed = 0;
+		if(Motor_Control_Parm.Motor4_Speed < 0) Motor_Control_Parm.Motor4_Speed = 0;
+		
+		if(Motor_Control_Parm.Motor1_Speed > 10) Motor_Control_Parm.Motor1_Speed = 10;
+		if(Motor_Control_Parm.Motor2_Speed > 10) Motor_Control_Parm.Motor2_Speed = 10;
+		if(Motor_Control_Parm.Motor3_Speed > 10) Motor_Control_Parm.Motor3_Speed = 10;
+		if(Motor_Control_Parm.Motor4_Speed > 10) Motor_Control_Parm.Motor4_Speed = 10;
+		
+	}
+	else
+	{	//基础速度为0，取消控制
+		Motor_Control_Parm.Motor1_Speed = 0;
+		Motor_Control_Parm.Motor2_Speed = 0;
+		Motor_Control_Parm.Motor3_Speed = 0;
+		Motor_Control_Parm.Motor4_Speed = 0;
+	}
+}
+
+
+
 /** @brief	巡线控制
   * @note	外环PID解算，输出速度
   **/
@@ -155,7 +213,6 @@ void Scan_Line_Control(void)
 		if(Motor_Control_Parm.Motor2_Speed > 10) Motor_Control_Parm.Motor2_Speed = 10;
 		if(Motor_Control_Parm.Motor3_Speed > 10) Motor_Control_Parm.Motor3_Speed = 10;
 		if(Motor_Control_Parm.Motor4_Speed > 10) Motor_Control_Parm.Motor4_Speed = 10;
-		
 	}
 	else
 	{	//基础速度为0，取消控制
@@ -164,6 +221,56 @@ void Scan_Line_Control(void)
 		Motor_Control_Parm.Motor3_Speed = 0;
 		Motor_Control_Parm.Motor4_Speed = 0;
 	}
+}
+
+/** @brief	行进中弧线转弯控制
+  * @note	保持前进的同时通过左右差速完成转向，不停顿
+  * @note	由周期任务驱动，转弯完成后自动切换回巡线控制
+  **/
+void Arc_Turn_Control_Compute(void)
+{
+	//计算剩余角度，归一化至-180~+180
+	float Angle = RUN_Parm.Arc_Turn_Target_Angle - IMU_Data.IMU_Angle_Z;
+	while(Angle > 180) Angle -= 360;
+	while(Angle < -180) Angle += 360;
+
+	//转弯完成，无缝切换回巡线
+	if(Angle > -RUN_Parm.Arc_Turn_End_Threshold && Angle < RUN_Parm.Arc_Turn_End_Threshold)
+	{
+		//恢复基础目标速度
+		Motor_Control_Parm.Base_Triger_Speed = RUN_Parm.Arc_Turn_Resume_Speed;
+		//复位巡线PID，避免历史误差冲击
+		Line_Patrol_PID.Error_Now 	= 0;
+		Line_Patrol_PID.Error_Last 	= 0;
+		Line_Patrol_PID.ErrorInt 	= 0;
+		Line_Patrol_PID.Out 		= 0;
+		//切换回巡线控制
+		RUN_Parm.Control_State = ScanLine_Control;
+		return;
+	}
+
+	//角度闭环差速计算
+	Arc_Turn_PID.Error_Last = Arc_Turn_PID.Error_Now;	//上次误差更新
+	Arc_Turn_PID.Error_Now = Angle;						//本次误差更新
+	PID_Positional_Compute(&Arc_Turn_PID);				//PID计算
+
+	//保持前进的同时差速转向，M1M2为右侧，M3M4为左侧
+	//Angle为正时目标在左，左侧减速右侧加速，实现左转
+	Motor_Control_Parm.Motor1_Speed = Motor_Control_Parm.Base_Speed + Arc_Turn_PID.Out * Motor_Control_Parm.Base_Speed;
+	Motor_Control_Parm.Motor2_Speed = Motor_Control_Parm.Base_Speed + Arc_Turn_PID.Out * Motor_Control_Parm.Base_Speed;
+	Motor_Control_Parm.Motor3_Speed = Motor_Control_Parm.Base_Speed - Arc_Turn_PID.Out * Motor_Control_Parm.Base_Speed;
+	Motor_Control_Parm.Motor4_Speed = Motor_Control_Parm.Base_Speed - Arc_Turn_PID.Out * Motor_Control_Parm.Base_Speed;
+
+	//速度限幅，最小为0保持前进不停顿
+	if(Motor_Control_Parm.Motor1_Speed < 0) Motor_Control_Parm.Motor1_Speed = 0;
+	if(Motor_Control_Parm.Motor2_Speed < 0) Motor_Control_Parm.Motor2_Speed = 0;
+	if(Motor_Control_Parm.Motor3_Speed < 0) Motor_Control_Parm.Motor3_Speed = 0;
+	if(Motor_Control_Parm.Motor4_Speed < 0) Motor_Control_Parm.Motor4_Speed = 0;
+
+	if(Motor_Control_Parm.Motor1_Speed > 10) Motor_Control_Parm.Motor1_Speed = 10;
+	if(Motor_Control_Parm.Motor2_Speed > 10) Motor_Control_Parm.Motor2_Speed = 10;
+	if(Motor_Control_Parm.Motor3_Speed > 10) Motor_Control_Parm.Motor3_Speed = 10;
+	if(Motor_Control_Parm.Motor4_Speed > 10) Motor_Control_Parm.Motor4_Speed = 10;
 }
 
 /** @brief	电机速度控制

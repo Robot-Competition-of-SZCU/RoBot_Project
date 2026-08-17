@@ -53,6 +53,7 @@ void RUN_Parm_Init(void)
 	//小车前进设置
 	Car_Advance();
 	Motor_Control_Parm.Turn_Speed = 1.5;
+	RUN_Parm.Arc_Turn_End_Threshold = 3.0f;	//弧线转弯完成判定阈值
 }
 
 /** @brief	运行速度控制
@@ -107,6 +108,10 @@ static float Angle_Diff_Wrap(float Now,float Last)
   **/
 void Car_Turn_Control(Turn_Mode Mode,float Turn_Angle)
 {
+	RUN_Parm.Control_State	= Turn_Control;			//转弯控制
+
+	Stop_Control();									//停止
+
 	//限制转向角度范围
 	if(Turn_Angle > 180) Turn_Angle = 180;
 	if(Turn_Angle < 0) Turn_Angle = 0;
@@ -161,6 +166,42 @@ void Car_Turn_Control(Turn_Mode Mode,float Turn_Angle)
 	Car_Advance();
 }
 
+/** @brief	行进中弧线转弯
+  * @param	Mode:转弯模式
+  * @param	Turn_Angle:转弯角度，范围为0-180
+  * @note	不停顿转弯，保持前进的同时通过左右差速完成转向
+  * @note	转弯完成后自动恢复原速度并切换回巡线控制
+  **/
+void Car_Arc_Turn_Control(Turn_Mode Mode,float Turn_Angle)
+{
+	//限制转向角度范围
+	if(Turn_Angle > 180) Turn_Angle = 180;
+	if(Turn_Angle < 0) Turn_Angle = 0;
+
+	//记录转弯完成后的恢复速度
+	RUN_Parm.Arc_Turn_Resume_Speed = Motor_Control_Parm.Base_Triger_Speed;
+	//设置转弯基础速度
+	Motor_Control_Parm.Base_Triger_Speed = Motor_Control_Parm.Turn_Speed;
+
+	//计算目标角度，处理回绕
+	RUN_Parm.Arc_Turn_Target_Angle = IMU_Data.IMU_Angle_Z;
+	RUN_Parm.Arc_Turn_Target_Angle += (Mode == Turn_Left) ? Turn_Angle : -Turn_Angle;
+	while(RUN_Parm.Arc_Turn_Target_Angle > 180) RUN_Parm.Arc_Turn_Target_Angle -= 360;
+	while(RUN_Parm.Arc_Turn_Target_Angle < -180) RUN_Parm.Arc_Turn_Target_Angle += 360;
+
+	//复位弧线转弯PID历史误差
+	Arc_Turn_PID.Error_Now = 0;
+	Arc_Turn_PID.Error_Last = 0;
+	Arc_Turn_PID.ErrorInt = 0;
+	Arc_Turn_PID.Out = 0;
+
+	//进入弧线转弯状态
+	RUN_Parm.Control_State = Arc_Turn_Control;
+
+	//阻塞等待转弯完成，转弯状态由周期任务驱动，完成后自动切回巡线
+	while(RUN_Parm.Control_State == Arc_Turn_Control) osDelay(1);
+}
+
 /** @brief	停止控制
   **/
 void Stop_Control(void)
@@ -189,6 +230,39 @@ void Mileage_Arrive_Wait(float Mileage)
 	PD4_LED_Control(LED_OFF);				//关闭PD4LED
 }
 
+/** @brief	C点至D点
+  * @note   起始地点需正对着4号景点
+  * @note   结束地点为正对着1号平台
+  **/
+void Test_C_to_Test_D(void)
+{
+	Test_C_to_Scenic_Spot4();		//C点至景点4
+	//osDelay(1000);
+	Scenic_Spot4_to_Scenic_Spot5();	//景点4至景点5
+	//osDelay(1000);
+	Scenic_Spot5_to_Test_D();		//景点5至D点
+}
+
+/** @brief	D点至C点
+  * @note   起始地点需正对着5号平台
+  * @note   结束地点为正对着D点
+  **/
+void Test_D_to_Test_C(void)
+{
+	Test_D_to_Platform5();			//D点至平台5
+
+	Turn_Around();					//原地转向
+	Platform5_to_Platform7();		//平台5至平台7
+
+	Turn_Around();					//原地转向
+	Platform7_to_Platform8();		//平台7至平台8
+
+	Turn_Around();					//原地转向
+	Platform8_to_Scenic_Spot3();	//平台8至景点3
+
+	Scenic_Spot3_to_Test_C();		//景点3至C点
+}
+
 
 /** @brief	系统运行控制任务
   **/
@@ -197,25 +271,74 @@ void RUN_System_Control(void)
 	//运行状态下
     if(RUN_Parm.RUN_State)
     {
-		Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设定
+		// // UART_Audio_Control(0);			//播报准备完毕
+		// // osDelay(1000);
 
-		Platform1_to_Platform2();		//平台1至平台2
+		// Platform1_to_Platform2();		//平台1至平台2
+		// // UART_Audio_Control(2);			//播报到达2号平台
+		// // osDelay(1000);
 
-		osDelay(500);
-		//到达2号平台///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// Turn_Around();						//原地转向
+		// Platform2_to_Scenic_Spot2();	//平台2至景点2
+		// Scenic_Spot2_to_Platform4();	//景点2至平台4
+		// // UART_Audio_Control(4);			//播报到达4号平台
+		// // osDelay(1000);
 
-		Platform2_to_Scenic_Spot2();	//平台2至景点2
+		// Turn_Around();						//原地转向
+		// Platform4_to_Scenic_Spot1();	//平台4至景点1
+		// Scenic_Spot1_to_Platform3();	//景点1至平台3
+		// // UART_Audio_Control(3);			//播报到达3号平台
+		// // osDelay(1000);
 
-		
+		// Turn_Around();						//原地转向
+		// Platform3_to_Test_A();			//平台3至A点
 
+		RUN_Parm.Common_Traffic_Sign = 4;
 
+		//进入后段路程
+		switch(RUN_Parm.Common_Traffic_Sign)
+		{
+			//可通过路口为1
+			case 1:	
+			case 3:
+					Test_C_to_Test_D();				//C点至D点
+
+					Car_Arc_Turn_Control(Turn_Right,85);	//行进中右转90
+
+					Test_D_to_Test_C();				//D点至C点
+					break;
+			case 2:
+			case 4:
+					Test_D_to_Test_C();				//D点至C点
+
+					Car_Arc_Turn_Control(Turn_Right,85);	//行进中右转90
+
+					Test_C_to_Test_D();				//C点至D点
+					break;
+		}
+
+		//回家
+		switch(RUN_Parm.Common_Traffic_Sign)
+		{
+			case 1:	Test_C_to_Test_A_to_Alpha();		//C点至A点至Alpha
+					break;
+			case 2:	Test_D_to_Test_A_to_Alpha();		//C点至B点至Alpha
+					break;
+			case 3: Test_C_to_Test_B_to_Alpha();		//D点至A点至Alpha
+					break;
+			case 4:	Test_D_to_Test_B_to_Alpha();		//D点至B点至Alpha
+					break;
+		}
+		Aplha_to_Platform1();				//Alpha点至平台1
+		Turn_Around();						//原地转向
 
 		//停止
 		RUN_Parm.RUN_Control = 0;
-		while(1) osDelay(1);	
-
+		RUN_Parm.RUN_State = 0;
+		//while(1) osDelay(1);	
 	}
 }
+
 
 /** @brief	上平台
   **/
@@ -228,22 +351,28 @@ void Go_Up_Platform(void)
 
 	//获取当前角度
 	RUN_Parm.Target_Angle = IMU_Data.IMU_Angle_Z;
+	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设置
+
+	Mileage_Arrive_Wait(5);						//里程等待
 
 	//等待灰度触发数量为0
 	while(Grayscale.Grayscale_Trigger_Num) osDelay(1);	
 
 	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
 	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
+	Mileage_Arrive_Wait(10);						//里程等待
 	//清除微动开关触发状态
 	RUN_Parm.Microswitch_State = 0;
 	//等待微动开关触发
-	while(!RUN_Parm.Microswitch_State) osDelay(1);
+	while(!(RUN_Parm.Microswitch_State)) osDelay(1);
 
 	osDelay(100);
 
 	Car_Retreat();									//小车后退控制
+	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;	//后退控制模式
 	Motor_Control_Parm.Base_Triger_Speed = 1.2;		//速度设置
 	Mileage_Arrive_Wait(8);							//里程等待
+	RUN_Parm.Angle_Control_Choice = Angle_Control_Advance;	//前进控制模式
 
 	//停止
 	Stop_Control();
@@ -253,8 +382,17 @@ void Go_Up_Platform(void)
   **/
 void Hit_The_Scenic_Spot(void)
 {
+	//清除微动开关触发状态
+	RUN_Parm.Microswitch_State = 0;
+	//等待微动开关触发
+	while(!RUN_Parm.Microswitch_State) osDelay(1);
 
+	Car_Retreat();									//小车后退控制
+	Motor_Control_Parm.Base_Triger_Speed = 1.2;		//速度设置
+	Mileage_Arrive_Wait(8);							//里程等待
 
+	//停止
+	Stop_Control();
 }
 
 /** @brief	下平台
@@ -263,10 +401,11 @@ void Go_Down_Platform(void)
 {
 	//获取当前角度
 	RUN_Parm.Target_Angle = IMU_Data.IMU_Angle_Z;
-	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设定
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设定
 	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
 	//等待灰度触发数量大于0
 	while(!Grayscale.Grayscale_Trigger_Num) osDelay(1);	
+	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设定
 
 	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
 }
@@ -278,8 +417,7 @@ void Turn_Around(void)
 	Servo_State.Servo_Angle[Servo2] = 90;			//舵机角度设定
 	osDelay(200);									//等待200ms
 
-	RUN_Parm.Control_State	= Turn_Control;			//转弯控制
-	Car_Turn_Control(Turn_Left,175);				//左转180度
+	Car_Turn_Control(Turn_Left,172.5);				//左转180度
 
 	Servo_State.Servo_Angle[Servo2] = 35;			//舵机角度设定
 	osDelay(200);									//等待200ms
@@ -297,69 +435,249 @@ void Cross_the_Mountain(void)
 	//获取当前角度
 	RUN_Parm.Target_Angle = IMU_Data.IMU_Angle_Z;	
 
-	Servo_State.Servo_Angle[Servo2] = 60;			//舵机角度设定
+	Servo_State.Servo_Angle[Servo2] = 90;			//舵机角度设定
 
-	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+	Motor_Control_Parm.Base_Triger_Speed = 1.2;		//速度设置
 	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
 	Mileage_Arrive_Wait(30);						//里程等待
 	Servo_State.Servo_Angle[Servo2] = 35;			//舵机角度设定
 	Mileage_Arrive_Wait(30);						//里程等待
+	//等待灰度触发数量大于0
+	while(!Grayscale.Grayscale_Trigger_Num) osDelay(1);	
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设定
 	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+}
 
+/** @brief	翻越长波浪板
+  **/
+void Cross_the_Long_Wave_Board(void)
+{
+	//清除左右侧光电传感器触发状态
+	RUN_Parm.Sensor_Left = 0; RUN_Parm.Sensor_Right = 0;
+	//等待左右侧光电传感器触发
+	while(!RUN_Parm.Sensor_Left && !RUN_Parm.Sensor_Right) osDelay(1);
+
+	//获取当前角度
+	RUN_Parm.Target_Angle = IMU_Data.IMU_Angle_Z;
+
+	Servo_State.Servo_Angle[Servo2] = 60;			//舵机角度设定
+
+	Motor_Control_Parm.Base_Triger_Speed = 1;		//速度设置
+	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
+	Mileage_Arrive_Wait(90);						//里程等待
+
+	Servo_State.Servo_Angle[Servo2] = 10;			//舵机角度设定
+	Mileage_Arrive_Wait(10);						//里程等待
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设定
+	Mileage_Arrive_Wait(50);						//里程等待
+	Servo_State.Servo_Angle[Servo2] = 35;			//舵机角度设定
+}
+
+/** @brief	翻越短波浪板
+  **/
+void Cross_the_Short_Wave_Board(void)
+{
+	//清除左右侧光电传感器触发状态
+	RUN_Parm.Sensor_Left = 0; RUN_Parm.Sensor_Right = 0;
+	//等待左右侧光电传感器触发
+	while(!RUN_Parm.Sensor_Left && !RUN_Parm.Sensor_Right) osDelay(1);
+
+	//获取当前角度
+	RUN_Parm.Target_Angle = IMU_Data.IMU_Angle_Z;
+
+	Servo_State.Servo_Angle[Servo2] = 60;			//舵机角度设定
+
+	Motor_Control_Parm.Base_Triger_Speed = 1;		//速度设置
+	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
+	Mileage_Arrive_Wait(40);						//里程等待
+
+	Servo_State.Servo_Angle[Servo2] = 10;			//舵机角度设定
+	Mileage_Arrive_Wait(10);						//里程等待
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设定
+	Mileage_Arrive_Wait(40);						//里程等待
+	Servo_State.Servo_Angle[Servo2] = 35;			//舵机角度设定
+}
+
+/** @brief	平台3至A点
+  **/
+void Platform3_to_Test_A(void)
+{
+	Go_Down_Platform();								//下平台
+	Mileage_Arrive_Wait(50);						//里程等待
+
+	Motor_Control_Parm.Base_Triger_Speed = 4;		//速度设置
+	Mileage_Arrive_Wait(150);						//里程等待
+
+	//等待到达路口
+	while(!((Grayscale.Grayscale_Trigger_State[8] + Grayscale.Grayscale_Trigger_State[9] +
+			Grayscale.Grayscale_Trigger_State[10]+ Grayscale.Grayscale_Trigger_State[11]+
+			Grayscale.Grayscale_Trigger_State[12]+ Grayscale.Grayscale_Trigger_State[13]+
+			Grayscale.Grayscale_Trigger_State[14]) > 5)) osDelay(1);
+
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+}
+
+/** @brief	景点1至平台3
+  **/
+void Scenic_Spot1_to_Platform3(void)
+{
+	Car_Retreat();									//小车后退控制
+	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;		//后退模式
+	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+	
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num <= 4) osDelay(1);
+	//等待到达路口中心
+	while(Grayscale.Grayscale_Trigger_Num > 4) osDelay(1);
+
+	// Car_Advance();									//小车前进控制
+	// RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	// Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+	// Mileage_Arrive_Wait(10);						//里程等待
+
+	// Stop_Control();									//停止
+	// osDelay(100);
+
+	Car_Arc_Turn_Control(Turn_Left,20);				//行进中左转
+
+	Car_Advance();									//小车前进控制
+	RUN_Parm.Angle_Control_Choice = Angle_Control_Advance;		//前进模式
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+
+	Go_Up_Platform();								//上平台
+}
+
+/** @brief	平台4至景点1
+  **/
+void Platform4_to_Scenic_Spot1(void)
+{
+	Go_Down_Platform();								//下平台
+	Mileage_Arrive_Wait(50);						//里程等待
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 5;		//速度设置
+	Mileage_Arrive_Wait(400);						//里程等待
+
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num < 4) osDelay(1);
+	osDelay(200);
+
+	Car_Arc_Turn_Control(Turn_Right,15);			//行进中右转
+
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+	Mileage_Arrive_Wait(50);						//里程等待
+
+	//复位中部传感器触发状态
+	RUN_Parm.Sensor_Middle = 0;
+	//等待中部传感器触发
+	while(!RUN_Parm.Sensor_Middle) osDelay(1);
+
+	//获取当前角度
+	RUN_Parm.Target_Angle = IMU_Data.IMU_Angle_Z;
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+
+	Hit_The_Scenic_Spot();							//撞景点
+}
+
+/** @brief	景点2至平台4
+  **/
+void Scenic_Spot2_to_Platform4(void)
+{
+	Car_Retreat();									//小车后退控制
+	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;		//后退模式
+	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+	
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num < 4) osDelay(1);
+
+	Stop_Control();									//停止
+	osDelay(100);
+
+	Car_Advance();									//小车前进控制
+	RUN_Parm.Angle_Control_Choice = Angle_Control_Advance;		//前进模式
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+	//Mileage_Arrive_Wait(10);						//里程等待
+
+	Car_Arc_Turn_Control(Turn_Right,20);			//行进中右转
+
+	Car_Advance();									//小车前进控制
+	RUN_Parm.Angle_Control_Choice = Angle_Control_Advance;		//前进模式
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+
+	Go_Up_Platform();								//上平台
 }
 
 /** @brief	平台2至景点2
   **/
 void Platform2_to_Scenic_Spot2(void)
 {
-	Turn_Around();									//原地转向
-
 	Go_Down_Platform();								//下平台
-	Mileage_Arrive_Wait(50);						//里程等待
+	Mileage_Arrive_Wait(30);						//里程等待
 	//等待到达路口
 	while(Grayscale.Grayscale_Trigger_Num < 4) osDelay(1);
 	osDelay(100);
 
-	RUN_Parm.Control_State	= Turn_Control;			//转弯控制
-	Car_Turn_Control(Turn_Right,40);				//右转
-	osDelay(100);	
+	Car_Arc_Turn_Control(Turn_Right,40);			//行进中右转
 	
 	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
-	Mileage_Arrive_Wait(40);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+	Mileage_Arrive_Wait(30);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设置
 	
 	Cross_the_Mountain();							//翻越山
 	
 	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
-	Mileage_Arrive_Wait(50);						//里程等待
+	Mileage_Arrive_Wait(20);						//里程等待
 	//等待到达路口
 	while(Grayscale.Grayscale_Trigger_Num < 4) osDelay(1);
-	osDelay(500);
+	osDelay(400);
 
-	RUN_Parm.Control_State	= Turn_Control;			//转弯控制
-	Car_Turn_Control(Turn_Left,40);					//右转
+	//Car_Turn_Control(Turn_Left,20);					//左转
 
 	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
-	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
-	Mileage_Arrive_Wait(200);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 4;		//速度设置
+	Mileage_Arrive_Wait(160);						//里程等待
+
+	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设置
 
 	//等待到达路口
 	while(Grayscale.Grayscale_Trigger_Num < 4) osDelay(1);
-	osDelay(500);
+	osDelay(200);
 
-	Car_Turn_Control(Turn_Left,40);					//左转
-	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设置
+	Car_Arc_Turn_Control(Turn_Left,30);				//行进中左转
 
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
 
-	
-	Go_Up_Platform();								//上平台
+	//复位中部传感器触发状态
+	RUN_Parm.Sensor_Middle = 0;
+	//等待中部传感器触发
+	while(!RUN_Parm.Sensor_Middle) osDelay(1);
 
+	//获取当前角度
+	RUN_Parm.Target_Angle = IMU_Data.IMU_Angle_Z;
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+
+	Hit_The_Scenic_Spot();							//撞景点
 }
 
 /** @brief	平台1至平台2
   **/
 void Platform1_to_Platform2(void)
 {
-
 	Go_Down_Platform();								//下平台
 	Mileage_Arrive_Wait(100);						//里程等待
 
@@ -367,11 +685,13 @@ void Platform1_to_Platform2(void)
 	RUN_Parm.Sensor_Left = 0; RUN_Parm.Sensor_Right = 0;
 	//等待左右侧光电传感器触发
 	while(!RUN_Parm.Sensor_Left && !RUN_Parm.Sensor_Right) osDelay(1);	
+
+	//获取当前角度
+	RUN_Parm.Target_Angle = IMU_Data.IMU_Angle_Z;
 	
 	//Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设定
 	Servo_State.Servo_Angle[Servo2] = 80;			//舵机角度设定
 	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
-	RUN_Parm.Target_Angle	= 1.5;					//设定角度为0度
 	Mileage_Arrive_Wait(30);						//里程等待
 	Servo_State.Servo_Angle[Servo2] = 35;			//舵机角度设定
 
@@ -390,7 +710,7 @@ void Platform1_to_Platform2(void)
 			RUN_Parm.Sensor_Left = 0;
 		}
 		//右侧传感器被触发，且当前端口为低电平
-		if(RUN_Parm.Sensor_Right && HAL_GPIO_ReadPin(GPIOF,GPIO_PIN_6) == 0)
+		if(RUN_Parm.Sensor_Right && HAL_GPIO_ReadPin(GPIOF,GPIO_PIN_5) == 0)
 		{	//角度偏移
 			RUN_Parm.Target_Angle += 3;
 			RUN_Parm.Sensor_Right = 0;
@@ -398,15 +718,817 @@ void Platform1_to_Platform2(void)
 		osDelay(1);
 	}	
 	PD4_LED_Control(LED_OFF);				//关闭PD4LED
-	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设定
+	Motor_Control_Parm.Base_Triger_Speed = 1.3;		//速度设定
 	//等待灰度触发数量大于0
 	while(!Grayscale.Grayscale_Trigger_Num) osDelay(1);	
-	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设定
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设定
 
 	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
-	Mileage_Arrive_Wait(50);						//里程等待
+	Mileage_Arrive_Wait(40);						//里程等待
 
 	Go_Up_Platform();								//上平台
+}
+
+/** @brief	C点至景点4
+  **/
+void Test_C_to_Scenic_Spot4(void)
+{
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+	Mileage_Arrive_Wait(15);						//里程等待
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num < 4) osDelay(1);
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+
+	Car_Arc_Turn_Control(Turn_Right,85);			//行进中右转90度
+
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+
+	//清除微动开关触发状态
+	RUN_Parm.Microswitch_State = 0;
+	//等待微动开关触发
+	while(!(RUN_Parm.Microswitch_State)) osDelay(1);
+
+	//获取当前角度
+	RUN_Parm.Target_Angle = IMU_Data.IMU_Angle_Z;
+
+	Car_Retreat();									//小车后退控制
+	Motor_Control_Parm.Base_Triger_Speed = 1.2;		//速度设置
+	Mileage_Arrive_Wait(8);							//里程等待
+
+	//停止
+	Stop_Control();
+}
+
+/** @brief	景点4至景点5
+  **/
+void Scenic_Spot4_to_Scenic_Spot5(void)
+{
+	Car_Retreat();									//小车后退控制
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;		//后退模式
+	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num < 4) osDelay(1);
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+
+	Car_Advance();									//小车前进控制
+	RUN_Parm.Angle_Control_Choice = Angle_Control_Advance;		//前进模式
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+
+	Mileage_Arrive_Wait(15);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+	
+	Car_Turn_Control(Turn_Left,85);					//左转90
+	osDelay(100);									//等待车身稳定
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num < 4) osDelay(1);
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+
+	Car_Arc_Turn_Control(Turn_Left,85);				//行进中左转90
+
+	Motor_Control_Parm.Base_Triger_Speed = 5;		//速度设置
+	Mileage_Arrive_Wait(200);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num < 4) osDelay(1);
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+
+	Car_Arc_Turn_Control(Turn_Left,85);				//行进中左转90
+
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+	Mileage_Arrive_Wait(15);						//里程等待
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num < 4) osDelay(1);
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+
+	Car_Arc_Turn_Control(Turn_Left,85);				//行进中左转90度
+
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+
+	//清除微动开关触发状态
+	RUN_Parm.Microswitch_State = 0;
+	//等待微动开关触发
+	while(!(RUN_Parm.Microswitch_State)) osDelay(1);
+
+	//获取当前角度
+	RUN_Parm.Target_Angle = IMU_Data.IMU_Angle_Z;
+
+	Car_Retreat();									//小车后退控制
+	Motor_Control_Parm.Base_Triger_Speed = 1.2;		//速度设置
+	Mileage_Arrive_Wait(8);							//里程等待
+
+	//停止
+	Stop_Control();
+}
+
+/** @brief	景点5至D点
+  **/
+void Scenic_Spot5_to_Test_D(void)
+{
+	Car_Retreat();									//小车后退控制
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;		//后退模式
+	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num < 4) osDelay(1);
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+
+	Car_Advance();									//小车前进控制
+	RUN_Parm.Angle_Control_Choice = Angle_Control_Advance;		//前进模式
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+
+	Mileage_Arrive_Wait(15);						//里程等待，等待车身行驶至路口上方
+
+	Car_Arc_Turn_Control(Turn_Right,85);			//行进中右转90
+
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+	Mileage_Arrive_Wait(20);						//里程等待
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num < 4) osDelay(1);
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+}
+
+/** @brief	D点至平台5
+  **/
+void Test_D_to_Platform5(void)
+{
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+	Mileage_Arrive_Wait(20);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 5;		//速度设置
+	Mileage_Arrive_Wait(160);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+
+	Go_Up_Platform();								///上平台
+}
+
+/** @brief	平台5至平台7
+  **/
+void Platform5_to_Platform7(void)
+{
+	Go_Down_Platform();								//下平台
+	Mileage_Arrive_Wait(20);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设定
+	Mileage_Arrive_Wait(50);						//里程等待
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num <= 4) osDelay(1);
+	//等待到达路口中心
+	while(Grayscale.Grayscale_Trigger_Num > 4) osDelay(1); 
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+
+	Car_Arc_Turn_Control(Turn_Left,40);				//行进中左转45
+
+	Motor_Control_Parm.Base_Triger_Speed = 3.5;		//速度设置
+	Mileage_Arrive_Wait(20);						//里程等待
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num <= 4) osDelay(1);
+	//等待到达路口中心
+	while(Grayscale.Grayscale_Trigger_Num > 4) osDelay(1);
+	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(150);									//等待车身稳定
+
+	Car_Turn_Control(Turn_Left,155);				//左转135
+	osDelay(100);									//等待车身稳定
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+	Mileage_Arrive_Wait(80);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+
+	Cross_the_Mountain();							//翻越第一座山
+	Mileage_Arrive_Wait(30);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num <= 4) osDelay(1);
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+
+	Car_Arc_Turn_Control(Turn_Right,85);			//行进中右转90
+
+	Motor_Control_Parm.Base_Triger_Speed = 3.5;		//速度设置
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num <= 4) osDelay(1);
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+
+	Car_Arc_Turn_Control(Turn_Right,85);			//行进中右转90
+
+	Motor_Control_Parm.Base_Triger_Speed = 3.5;		//速度设置
+	Mileage_Arrive_Wait(20);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 4;		//速度设置
+	Mileage_Arrive_Wait(60);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+
+	Cross_the_Mountain();							//翻越第二座山
+	Mileage_Arrive_Wait(30);						//里程等待
+
+	Motor_Control_Parm.Base_Triger_Speed = 4;		//速度设置
+	Mileage_Arrive_Wait(70);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num <= 4) osDelay(1);
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+
+	Car_Arc_Turn_Control(Turn_Right,85);			//行进中右转90
+
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num <= 4) osDelay(1);
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+
+	Car_Arc_Turn_Control(Turn_Right,85);			//行进中右转90
+
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+	Mileage_Arrive_Wait(30);						//里程等待
+
+	Cross_the_Long_Wave_Board();					//翻越长波浪板
+	Mileage_Arrive_Wait(20);						//里程等待
+	
+	////////////
+	//上高台
+	////////////
+
+	//清除左右侧光电传感器触发状态
+	RUN_Parm.Sensor_Left = 0; RUN_Parm.Sensor_Right = 0;
+	//等待左右侧光电传感器触发
+	while(!RUN_Parm.Sensor_Left && !RUN_Parm.Sensor_Right) osDelay(1);
+	
+	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设置
+
+	Mileage_Arrive_Wait(40);						//里程等待
+
+	//获取当前角度
+	RUN_Parm.Target_Angle = IMU_Data.IMU_Angle_Z;
+
+	//等待灰度触发数量为0
+	while(Grayscale.Grayscale_Trigger_Num) osDelay(1);	
+
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
+	//Mileage_Arrive_Wait(10);						//里程等待
+	//清除微动开关触发状态
+	RUN_Parm.Microswitch_State = 0;
+	//等待微动开关触发
+	while(!(RUN_Parm.Microswitch_State)) osDelay(1);
+
+	osDelay(100);
+
+	Car_Retreat();									//小车后退控制
+	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;	//后退控制模式
+	Motor_Control_Parm.Base_Triger_Speed = 1.2;		//速度设置
+	Mileage_Arrive_Wait(8);							//里程等待
+	RUN_Parm.Angle_Control_Choice = Angle_Control_Advance;	//前进控制模式
+
+	//停止
+	Stop_Control();
+}
+
+/** @brief	平台7至平台8
+  **/
+void Platform7_to_Platform8(void)
+{
+	Servo_State.Servo_Angle[Servo2] = 0;			//舵机角度设定
+	//获取当前角度
+	RUN_Parm.Target_Angle = IMU_Data.IMU_Angle_Z;
+	Motor_Control_Parm.Base_Triger_Speed = 1.2;		//速度设定
+	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
+	//等待灰度触发数量大于0
+	while(!Grayscale.Grayscale_Trigger_Num) osDelay(1);	
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 1.2;		//速度设定
+
+	Mileage_Arrive_Wait(50);						//里程等待
+
+	Servo_State.Servo_Angle[Servo2] = 35;			//舵机角度设定
+
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设定
+
+	//等待Y轴姿态大于-5
+	while(!(IMU_Data.IMU_Angle_X > -5))	osDelay(1);	
+
+	Mileage_Arrive_Wait(20);							//里程等待
+
+	Cross_the_Long_Wave_Board();					//翻越长波浪板
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 5;		//速度设置
+	Mileage_Arrive_Wait(50);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设置
+
+	Cross_the_Mountain();							//翻越山
+	Mileage_Arrive_Wait(30);						//里程等待
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 5;		//速度设置
+	Mileage_Arrive_Wait(100);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+
+	//清除左右侧光电传感器触发状态
+	RUN_Parm.Sensor_Left = 0; RUN_Parm.Sensor_Right = 0;
+	//等待左右侧光电传感器触发
+	while(!RUN_Parm.Sensor_Left && !RUN_Parm.Sensor_Right) osDelay(1);
+	//获取当前角度
+	RUN_Parm.Target_Angle = IMU_Data.IMU_Angle_Z;
+
+	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设置
+
+	Mileage_Arrive_Wait(50);						//里程等待
+
+	//等待灰度触发数量为0
+	while(Grayscale.Grayscale_Trigger_Num) osDelay(1);	
+
+	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设置
+	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
+	Mileage_Arrive_Wait(20);						//里程等待
+
+	//到达一阶平台
+
+	//等待灰度触发数量大于0
+	while(!Grayscale.Grayscale_Trigger_Num) osDelay(1);	
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设置
+	Mileage_Arrive_Wait(50);						//里程等待
+	//获取当前角度
+	RUN_Parm.Target_Angle = IMU_Data.IMU_Angle_Z;
+
+	//等待灰度触发数量为0
+	while(Grayscale.Grayscale_Trigger_Num) osDelay(1);	
+
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
+	Mileage_Arrive_Wait(20);						//里程等待
+
+	//到达二阶平台
+	//清除微动开关触发状态
+	RUN_Parm.Microswitch_State = 0;
+	//等待微动开关触发
+	while(!(RUN_Parm.Microswitch_State)) osDelay(1);
+
+	osDelay(100);
+
+	Car_Retreat();									//小车后退控制
+	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;	//后退控制模式
+	Motor_Control_Parm.Base_Triger_Speed = 1.2;		//速度设置
+	Mileage_Arrive_Wait(8);							//里程等待
+	RUN_Parm.Angle_Control_Choice = Angle_Control_Advance;	//前进控制模式
+
+	//停止
+	Stop_Control();
+}
+
+/** @brief	平台8至景点3
+  **/
+void Platform8_to_Scenic_Spot3(void)
+{
+	///////////////////////////
+	//变换巡线PID比例系数
+	Line_Patrol_PID.Kp = 0.15f;
+	///////////////////////////
+
+	Servo_State.Servo_Angle[Servo2] = 0;			//舵机角度设定
+
+	//获取当前角度
+	RUN_Parm.Target_Angle = IMU_Data.IMU_Angle_Z;
+	Motor_Control_Parm.Base_Triger_Speed = 1.2;		//速度设定
+	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
+	//等待灰度触发数量大于0
+	while(!Grayscale.Grayscale_Trigger_Num) osDelay(1);	
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设定
+
+	Mileage_Arrive_Wait(40);						//里程等待
+
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设定
+
+	//等待灰度触发数量为0
+	while(Grayscale.Grayscale_Trigger_Num) osDelay(1);
+	
+	Servo_State.Servo_Angle[Servo2] = 35;			//舵机角度设定
+
+	//到达一阶平台
+
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
+	Mileage_Arrive_Wait(20);						//里程等待
+
+	//等待灰度触发数量大于0
+	while(!Grayscale.Grayscale_Trigger_Num) osDelay(1);	
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设定
+	Mileage_Arrive_Wait(40);						//里程等待
+
+	//等待Y轴姿态大于-5
+	while(!(IMU_Data.IMU_Angle_X > -5))	osDelay(1);	
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设定
+
+
+	///////////////////////////
+	//变换巡线PID比例系数
+	Line_Patrol_PID.Kp = 0.12f;
+	///////////////////////////
+
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num <= 4) osDelay(1);
+	//等待到达路口中心
+	while(Grayscale.Grayscale_Trigger_Num > 4) osDelay(1); 
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+
+	Car_Turn_Control(Turn_Left,130);				//左转135
+	osDelay(100);									//等待车身稳定
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 4;		//速度设置
+	Mileage_Arrive_Wait(20);						//里程等待
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num <= 4) osDelay(1);
+	//等待到达路口中心
+	while(Grayscale.Grayscale_Trigger_Num > 4) osDelay(1); 
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+
+	Car_Turn_Control(Turn_Left,120);				//左转135
+	osDelay(100);									//等待车身稳定
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 4;		//速度设置
+	Mileage_Arrive_Wait(20);						//里程等待
+
+	//直角1
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num <= 4) osDelay(1);
+	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+
+	Car_Turn_Control(Turn_Right,85);				//右转90
+	osDelay(100);									//等待车身稳定
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 4;		//速度设置
+	Mileage_Arrive_Wait(20);						//里程等待
+
+	//直角2
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num <= 4) osDelay(1);
+	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+
+	Car_Turn_Control(Turn_Right,85);				//右转90
+	osDelay(100);									//等待车身稳定
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 4;		//速度设置
+	Mileage_Arrive_Wait(20);						//里程等待
+
+	//直角3
+	while(Grayscale.Grayscale_Trigger_Num <= 4) osDelay(1);
+	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+
+	Car_Turn_Control(Turn_Right,85);				//右转90
+	osDelay(100);									//等待车身稳定
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+
+	//清除微动开关触发状态
+	RUN_Parm.Microswitch_State = 0;
+	//等待微动开关触发
+	while(!(RUN_Parm.Microswitch_State)) osDelay(1);
+
+	//获取当前角度
+	RUN_Parm.Target_Angle = IMU_Data.IMU_Angle_Z;
+
+	Car_Retreat();									//小车后退控制
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+	Mileage_Arrive_Wait(8);							//里程等待
+
+	//停止
+	Stop_Control();
+}
+
+/** @brief	景点3至C点
+  **/
+void Scenic_Spot3_to_Test_C(void)
+{
+	Car_Retreat();									//小车后退控制
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;		//后退模式
+	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num < 4) osDelay(1);
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+
+	Car_Advance();									//小车前进控制
+	RUN_Parm.Angle_Control_Choice = Angle_Control_Advance;		//前进模式
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+
+	Mileage_Arrive_Wait(15);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+	
+	Car_Turn_Control(Turn_Left,85);					//左转90
+	osDelay(100);									//等待车身稳定
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num < 4) osDelay(1);
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+
+	Car_Turn_Control(Turn_Right,85);				//右转90
+	osDelay(100);									//等待车身稳定
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 6;		//速度设置
+	Mileage_Arrive_Wait(180);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num < 4) osDelay(1);
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+}
+
+/** @brief	Alpha点至平台1
+  **/
+void Aplha_to_Platform1(void)
+{
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+	Mileage_Arrive_Wait(15);						//里程等待
+
+	Cross_the_Short_Wave_Board();					//翻越短波浪板
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+	Mileage_Arrive_Wait(50);						//里程等待
+
+	//清除左右侧光电传感器触发状态
+	RUN_Parm.Sensor_Left = 0; RUN_Parm.Sensor_Right = 0;
+	//等待左右侧光电传感器触发
+	while(!RUN_Parm.Sensor_Left && !RUN_Parm.Sensor_Right) osDelay(1);	
+
+	//获取当前角度
+	RUN_Parm.Target_Angle = IMU_Data.IMU_Angle_Z;
+	Motor_Control_Parm.Base_Triger_Speed = 2;		//速度设置
+
+	Mileage_Arrive_Wait(5);						//里程等待
+
+	//等待灰度触发数量为0
+	while(Grayscale.Grayscale_Trigger_Num) osDelay(1);	
+
+	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
+	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
+	//Mileage_Arrive_Wait(5);						//里程等待
+	//清除左右侧光电传感器触发状态
+	RUN_Parm.Sensor_Left = 0; RUN_Parm.Sensor_Right = 0;
+	//等待左右侧光电传感器触发
+	while(!RUN_Parm.Sensor_Left && !RUN_Parm.Sensor_Right) osDelay(1);	
+
+	// Stop_Control();									//停止控制
+
+	// Car_Retreat();									//小车后退控制
+	// RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;	//后退控制模式
+	// Motor_Control_Parm.Base_Triger_Speed = 1.2;		//速度设置
+	// Mileage_Arrive_Wait(4);							//里程等待
+	// RUN_Parm.Angle_Control_Choice = Angle_Control_Advance;	//前进控制模式
+	// Car_Advance();									//小车前进控制
+
+	//停止
+	Stop_Control();
+}
+
+/** @brief	A点至识别1
+  **/
+void Test_A_to_recognition1(void)
+{
+	
+}
+
+/** @brief	C点至A点至Alpha
+  **/
+void Test_C_to_Test_A_to_Alpha(void)
+{
+	Car_Turn_Control(Turn_Left,85);					//左转90
+	osDelay(100);									//等待车身稳定
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 5;		//速度设置
+	Mileage_Arrive_Wait(120);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+
+	//等待到达路口
+	while(!((Grayscale.Grayscale_Trigger_State[0] + Grayscale.Grayscale_Trigger_State[1] +
+			Grayscale.Grayscale_Trigger_State[2]+ Grayscale.Grayscale_Trigger_State[3]+
+			Grayscale.Grayscale_Trigger_State[4]+ Grayscale.Grayscale_Trigger_State[5]+
+			Grayscale.Grayscale_Trigger_State[6]) > 5)) osDelay(1);
+
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+
+	Car_Turn_Control(Turn_Right,85);				//右转90
+	osDelay(100);									//等待车身稳定
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 4;		//速度设置
+	Mileage_Arrive_Wait(50);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num <= 4) osDelay(1);
+	//等待到达路口中心
+	while(Grayscale.Grayscale_Trigger_Num > 4) osDelay(1); 
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+
+	Car_Turn_Control(Turn_Left,45);					//左转
+	osDelay(100);									//等待车身稳定
+}
+
+/** @brief	C点至B点至Alpha
+  **/
+void Test_C_to_Test_B_to_Alpha(void)
+{
+	Car_Turn_Control(Turn_Left,40);					//左转
+	osDelay(100);									//等待车身稳定
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 5;		//速度设置
+	Mileage_Arrive_Wait(250);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num <= 4) osDelay(1);
+	//等待到达路口中心
+	while(Grayscale.Grayscale_Trigger_Num > 4) osDelay(1); 
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+
+	Car_Turn_Control(Turn_Left,145);				//左转
+	osDelay(100);									//等待车身稳定
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 4;		//速度设置
+	Mileage_Arrive_Wait(50);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num <= 4) osDelay(1);
+	//等待到达路口中心
+	while(Grayscale.Grayscale_Trigger_Num > 4) osDelay(1); 
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+
+	Car_Turn_Control(Turn_Right,135);				//右转
+	osDelay(100);									//等待车身稳定
+}
+
+/** @brief	D点至A点至Alpha
+  **/
+void Test_D_to_Test_A_to_Alpha(void)
+{
+	Car_Turn_Control(Turn_Left,45);					//左转
+	osDelay(100);									//等待车身稳定
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 5;		//速度设置
+	Mileage_Arrive_Wait(250);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num <= 4) osDelay(1);
+	//等待到达路口中心
+	while(Grayscale.Grayscale_Trigger_Num > 4) osDelay(1); 
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+
+	Car_Turn_Control(Turn_Right,145);				//右转
+	osDelay(100);									//等待车身稳定
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 4;		//速度设置
+	Mileage_Arrive_Wait(50);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num <= 4) osDelay(1);
+	//等待到达路口中心
+	while(Grayscale.Grayscale_Trigger_Num > 4) osDelay(1); 
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+
+	Car_Turn_Control(Turn_Left,45);					//左转
+	osDelay(100);									//等待车身稳定
+}
+
+/** @brief	D点至B点至Alpha
+  **/
+void Test_D_to_Test_B_to_Alpha(void)
+{
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 5;		//速度设置
+	Mileage_Arrive_Wait(120);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+
+	//等待到达路口
+	while(!((Grayscale.Grayscale_Trigger_State[13] + Grayscale.Grayscale_Trigger_State[12] +
+			Grayscale.Grayscale_Trigger_State[11]+ Grayscale.Grayscale_Trigger_State[10]+
+			Grayscale.Grayscale_Trigger_State[9]+ Grayscale.Grayscale_Trigger_State[8]+
+			Grayscale.Grayscale_Trigger_State[7]) > 5)) osDelay(1);
+
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+
+	Car_Turn_Control(Turn_Left,85);					//左转90
+	osDelay(100);									//等待车身稳定
+
+	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
+	Motor_Control_Parm.Base_Triger_Speed = 4;		//速度设置
+	Mileage_Arrive_Wait(50);						//里程等待
+	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
+
+	//等待到达路口
+	while(Grayscale.Grayscale_Trigger_Num <= 4) osDelay(1);
+	//等待到达路口中心
+	while(Grayscale.Grayscale_Trigger_Num > 4) osDelay(1); 
+	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
+	Mileage_Arrive_Wait(10);						//里程等待，等待车身行驶至路口上方
+	Stop_Control();									//停止
+	osDelay(100);									//等待车身稳定
+
+	Car_Turn_Control(Turn_Right,135);				//右转
+	osDelay(100);									//等待车身稳定
 }
 
 /** @brief	里程累计函数
@@ -447,16 +1569,7 @@ void GPIO_Trigger_Control(uint32_t GPIO_Pin)
 		//运行状态下
 		if(RUN_Parm.RUN_State == 1)
 		{
-			//达到设定里程
-			if(RUN_Parm.Mileage_Int >= RUN_Parm.Mileage_Parm)
-			{
-				//下一目标为平台
-				if(RUN_Parm.Front == Platform)
-				{
-					//置执行切换标志位
-					RUN_Parm.Path_Switching_Flag = 1;
-				}
-			}
+			RUN_Parm.Sensor_Middle++;
 		}
 			
 	}

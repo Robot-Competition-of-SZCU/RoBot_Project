@@ -69,12 +69,12 @@ void User_Init(void)
 	RUN_Parm_Init();		//运行参数初始化
 	PID_Parameter_Init();	//PID参数初始化
 	
-	// HAL_Delay(1000);
-	// UART_Audio_Loud_Control(30);
+	HAL_Delay(1000);
+	UART_Audio_Loud_Control(30);
+	HAL_Delay(20);
+	UART_Audio_Mode_Control();
 	// HAL_Delay(20);
-	// UART_Audio_Mode_Control();
-	// HAL_Delay(20);
-	//UART_Audio_Control(1);
+	// UART_Audio_Control(0);
 	
 	Motor_Start();
 	
@@ -185,24 +185,35 @@ void Slow_Compute_Task(void *argument)
 				Motor_Control_Parm.Motor4_Speed = Motor_Control_Parm.Base_Speed;
 			}
 			else if(RUN_Parm.Control_State == ScanLine_Control)
+			{
 				Scan_Line_Control();			//巡线控制
+			}
 			else if(RUN_Parm.Control_State == Angle_Control)
-				Angle_Patrol_Control();			//角度跟随控制
+			{
+				if(RUN_Parm.Angle_Control_Choice == Angle_Control_Advance)
+					Angle_Patrol_Control();			//角度跟随控制
+				else if(RUN_Parm.Angle_Control_Choice == Angle_Control_Retreat)
+					Angle_Patrol_Retreat_Control();	
+			}	
+			else if(RUN_Parm.Control_State == Arc_Turn_Control)
+			{
+				Arc_Turn_Control_Compute();			//行进中弧线转弯控制
+			}
 
 			Servo_Control();				//舵机控制
 		}
 		//1000ms延时任务
 		if(Time_Base == 200)
 		{
-			//获取各任务的信息
-			vTaskGetInfo(xTaskGetHandle("defaultTask"),&xTaskDetails_RUN_LED_Flash,pdTRUE,eInvalid);
-			vTaskGetInfo(xTaskGetHandle("RUN_LED_Flash"),&xTaskDetails_RUN_LED_Flash,pdTRUE,eInvalid);
-			vTaskGetInfo(xTaskGetHandle("KEY_Scan"),&xTaskDetails_KEY_Scan,pdTRUE,eInvalid);
-			vTaskGetInfo(xTaskGetHandle("Set_And_Show"),&xTaskDetails_Set_And_Show,pdTRUE,eInvalid);
-			vTaskGetInfo(xTaskGetHandle("State_LED_Flash"),&xTaskDetails_State_LED_Flash,pdTRUE,eInvalid);
-			vTaskGetInfo(xTaskGetHandle("Slow_Compute"),&xTaskDetails_Slow_Compute,pdTRUE,eInvalid);
-			vTaskGetInfo(xTaskGetHandle("High_Compute"),&xTaskDetails_High_Compute,pdTRUE,eInvalid);
-			vTaskGetInfo(xTaskGetHandle("UART_Debug"),&xTaskDetails_UART_Debug,pdTRUE,eInvalid);
+			// //获取各任务的信息
+			// vTaskGetInfo(xTaskGetHandle("defaultTask"),&xTaskDetails_RUN_LED_Flash,pdTRUE,eInvalid);
+			// vTaskGetInfo(xTaskGetHandle("RUN_LED_Flash"),&xTaskDetails_RUN_LED_Flash,pdTRUE,eInvalid);
+			// vTaskGetInfo(xTaskGetHandle("KEY_Scan"),&xTaskDetails_KEY_Scan,pdTRUE,eInvalid);
+			// vTaskGetInfo(xTaskGetHandle("Set_And_Show"),&xTaskDetails_Set_And_Show,pdTRUE,eInvalid);
+			// vTaskGetInfo(xTaskGetHandle("State_LED_Flash"),&xTaskDetails_State_LED_Flash,pdTRUE,eInvalid);
+			// vTaskGetInfo(xTaskGetHandle("Slow_Compute"),&xTaskDetails_Slow_Compute,pdTRUE,eInvalid);
+			// vTaskGetInfo(xTaskGetHandle("High_Compute"),&xTaskDetails_High_Compute,pdTRUE,eInvalid);
+			// vTaskGetInfo(xTaskGetHandle("UART_Debug"),&xTaskDetails_UART_Debug,pdTRUE,eInvalid);
 		}
 		Time_Base %= 200;	//限位
 	}
