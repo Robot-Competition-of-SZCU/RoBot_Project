@@ -28,6 +28,7 @@
 
 #include "User_Task.h"
 #include "stm32f4xx_it.h"
+#include "UART.h"
 
 /* USER CODE END Includes */
 
@@ -119,8 +120,15 @@ const osThreadAttr_t GPIO_IT_Trigger_attributes = {
 osThreadId_t RUN_ControlHandle;
 const osThreadAttr_t RUN_Control_attributes = {
   .name = "RUN_Control",
-  .stack_size = 256 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityHigh1,
+};
+/* Definitions for Visual_Identity */
+osThreadId_t Visual_IdentityHandle;
+const osThreadAttr_t Visual_Identity_attributes = {
+  .name = "Visual_Identity",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityHigh2,
 };
 /* Definitions for GPIO_Tigger_State */
 osMessageQueueId_t GPIO_Tigger_StateHandle;
@@ -132,6 +140,17 @@ const osMessageQueueAttr_t GPIO_Tigger_State_attributes = {
   .cb_size = sizeof(GPIO_Tigger_Buffer_ControlBlock),
   .mq_mem = &GPIO_Tigger_Buffer,
   .mq_size = sizeof(GPIO_Tigger_Buffer)
+};
+/* Definitions for Visual_Identity_Queue */
+osMessageQueueId_t Visual_Identity_QueueHandle;
+uint8_t Visual_Identity_QueueBuffer[ 4 * 66 ];
+osStaticMessageQDef_t Visual_Identity_QueueControlBlock;
+const osMessageQueueAttr_t Visual_Identity_Queue_attributes = {
+  .name = "Visual_Identity_Queue",
+  .cb_mem = &Visual_Identity_QueueControlBlock,
+  .cb_size = sizeof(Visual_Identity_QueueControlBlock),
+  .mq_mem = &Visual_Identity_QueueBuffer,
+  .mq_size = sizeof(Visual_Identity_QueueBuffer)
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -150,6 +169,7 @@ void UART_Debug_Task(void *argument);
 void High_Compute_Task(void *argument);
 void GPIO_IT_Trigger_Task(void *argument);
 void RUN_Control_Task(void *argument);
+void Visual_Identity_Task(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -178,6 +198,9 @@ void MX_FREERTOS_Init(void) {
   /* Create the queue(s) */
   /* creation of GPIO_Tigger_State */
   GPIO_Tigger_StateHandle = osMessageQueueNew (16, sizeof(uint32_t), &GPIO_Tigger_State_attributes);
+
+  /* creation of Visual_Identity_Queue */
+  Visual_Identity_QueueHandle = osMessageQueueNew (4, 66, &Visual_Identity_Queue_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -213,6 +236,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of RUN_Control */
   RUN_ControlHandle = osThreadNew(RUN_Control_Task, NULL, &RUN_Control_attributes);
+
+  /* creation of Visual_Identity */
+  Visual_IdentityHandle = osThreadNew(Visual_Identity_Task, NULL, &Visual_Identity_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -402,6 +428,24 @@ __weak void RUN_Control_Task(void *argument)
     osDelay(1);
   }
   /* USER CODE END RUN_Control_Task */
+}
+
+/* USER CODE BEGIN Header_Visual_Identity_Task */
+/**
+* @brief Function implementing the Visual_Identity thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Visual_Identity_Task */
+__weak void Visual_Identity_Task(void *argument)
+{
+  /* USER CODE BEGIN Visual_Identity_Task */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END Visual_Identity_Task */
 }
 
 /* Private application code --------------------------------------------------*/

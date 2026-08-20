@@ -96,16 +96,30 @@ struct RUN{
 	int Sensor_Right;			//右侧光电传感器触发状态
 	int Microswitch_State;		//微动开关状态
 
-	int Common_Traffic_Sign;	//通行指示牌序号
+	char Common_Traffic_Sign;	//通行指示牌序号
+
+	char Colour_Test;			//检测颜色
+	char Word_Test;				//检测文字
+	char Word_Test_Num;			//文字检测次数
+
+	char Visual_Identity_Word_Flag;		//视觉识别文字标志位
+	char Visual_Identity_Colour_Flag;	//视觉识别颜色标志位
+
+	char Round;					//回合
 };
 extern struct RUN RUN_Parm;
 
 void RUN_Parm_Init(void);		//运行参数初始化
 void RUN_Speed_Control(void);	//运行速度控制
 
+void Run_Record_Add(uint8_t Code);	//运行记录添加，1-8为平台，9-13为景点
+
 void Mileage_Int_Compute(void);	//里程累计函数
 
 void GPIO_Trigger_Control(uint32_t GPIO_Pin);	//GPIO中断触发任务
+
+void Word_Test_Recognition(void);		//文本识别
+char Colour_Test_Recognition(void);		//颜色识别
 
 void RUN_System_Control(void);			//系统运行控制任务
 
@@ -123,14 +137,27 @@ void Cross_the_Mountain(void);			//翻越山
 void Cross_the_Long_Wave_Board(void);	//翻越长波浪板
 void Cross_the_Short_Wave_Board(void);	//翻越短波浪板
 
+//前段路程
 void Platform1_to_Platform2(void);				//平台1至平台2
 void Platform2_to_Scenic_Spot2(void);			//平台2至景点2
 void Scenic_Spot2_to_Platform4(void);			//景点2至平台4
 void Platform4_to_Scenic_Spot1(void);			//平台4至景点1
 void Scenic_Spot1_to_Platform3(void);			//景点1至平台3
 
+//通行检测
 void Platform3_to_Test_A(void);					//平台3至A点
+void Traffic_Sign_1_Test(void);					//通行指示牌1检测
+void Traffic_Sign_1_Pass(void);					//通行指示牌1通过
+void Traffic_Sign_2_Test(void);					//通行指示牌2检测
+void Traffic_Sign_2_Pass(void);					//通行指示牌2通过
+void Traffic_Sign_3_Test(void);					//通行指示牌3检测
+void Traffic_Sign_3_Pass(void);					//通行指示牌3通过
+void Traffic_Sign_4_Test(void);					//通行指示牌4检测
+void Traffic_Sign_4_Pass(void);					//通行指示牌4通过
 
+
+
+//后段路程
 void Test_C_to_Scenic_Spot4(void);				//C点至景点4
 void Scenic_Spot4_to_Scenic_Spot5(void);		//景点4至景点5
 void Scenic_Spot5_to_Test_D(void);				//景点5至D点
@@ -141,12 +168,13 @@ void Platform7_to_Platform8(void);				//平台7至平台8
 void Platform8_to_Scenic_Spot3(void);			//平台8至景点3
 void Scenic_Spot3_to_Test_C(void);				//景点3至C点
 
-void Aplha_to_Platform1(void);					//Alpha点至平台1
 
+//回家
 void Test_C_to_Test_A_to_Alpha(void);			//C点至A点至Alpha
 void Test_C_to_Test_B_to_Alpha(void);			//C点至B点至Alpha
 void Test_D_to_Test_A_to_Alpha(void);			//D点至A点至Alpha
 void Test_D_to_Test_B_to_Alpha(void);			//D点至B点至Alpha
+void Aplha_to_Platform1(void);					//Alpha点至平台1
 
 
 #endif

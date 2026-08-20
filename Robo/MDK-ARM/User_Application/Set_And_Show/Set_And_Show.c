@@ -83,6 +83,20 @@ void System_Menu_Control_And_Show(void)
 		case Level3:
 				switch(Menu_Parm.Menu_Interface_L2)
 				{
+					case RUN_Set:
+							//二级运行菜单
+							switch(Menu_Parm.Menu_Interface_L3)
+							{
+								case RUN_Parm_Set:
+										//三级运行参数设置控制与显示
+										Menu_RUN_Parm_Set(R_KEY1,R_KEY2,R_Rocker_UP,R_Rocker_Down);
+										break;
+								case RUN_View:
+										//三级运行记录显示
+										Menu_RUN_View(R_KEY1,R_KEY2,R_Rocker_UP,R_Rocker_Down);
+										break;
+							}
+							break;
 					//系统设置菜单
 					case System_Set:
 							//二级系统菜单
@@ -287,12 +301,12 @@ void Menu_Level2_RUN_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigger_
 	//摇杆下按，下翻选项
 	if(Rocker_Down)
 	{	Menu_Pointer++;							//菜单指针自增
-		if(Menu_Pointer == 2) Menu_Pointer = 0;	//超过长度，回到顶端
+		if(Menu_Pointer == 3) Menu_Pointer = 0;	//超过长度，回到顶端
 	}
 	//摇杆上按，上翻选项
 	if(Rocker_UP)
 	{	Menu_Pointer--;							//菜单指针自减
-		if(Menu_Pointer < 0) Menu_Pointer = 1;	//超过长度，回到底端
+		if(Menu_Pointer < 0) Menu_Pointer = 2;	//超过长度，回到底端
 	}
 	//按键2按下，退出当前菜单
 	if(KEY2)
@@ -303,15 +317,17 @@ void Menu_Level2_RUN_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigger_
 	//按键1按下，进入所选菜单
 	if(KEY1)
 	{
-		// //菜单等级+1
-		// Menu_Parm.Menu_Level++;
-		// //三级菜单的界面为当前菜单指针所指向的界面
-		// Menu_Parm.Menu_Interface_L3 = Menu_Pointer;
-		switch(Menu_Pointer)
-		{
+		//当前菜单指针为0
+		if(Menu_Pointer == 0)
 			//切换控制状态
-			case 0:	RUN_Parm.RUN_Control = !RUN_Parm.RUN_Control;
-					break;
+			RUN_Parm.RUN_Control = !RUN_Parm.RUN_Control;
+		//其他状态
+		else
+		{
+			//菜单等级+1
+			Menu_Parm.Menu_Level++;
+			//三级菜单的界面为当前菜单指针所指向的界面
+			Menu_Parm.Menu_Interface_L3 = Menu_Pointer - 1;
 		}
 	}
 
@@ -321,6 +337,7 @@ void Menu_Level2_RUN_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigger_
 	else
 		OLED_ShowString(0,0,"开始运行",OLED_8X16);
 	OLED_ShowString(0,16,"运行设置",OLED_8X16);
+	OLED_ShowString(0,32,"运行查看",OLED_8X16);
 	
 	//控制指针指向部分高亮显示
 	switch(Menu_Pointer)
@@ -328,6 +345,8 @@ void Menu_Level2_RUN_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigger_
 		case 0:	OLED_ReverseArea(0,0,64,16);
 				break;
 		case 1:	OLED_ReverseArea(0,16,64,16);
+				break;
+		case 2:	OLED_ReverseArea(0,32,64,16);
 				break;
 	}
 }
@@ -622,6 +641,92 @@ void Menu_Level2_Task_Show(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigge
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///* 三级菜单显示 *///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/** @brief	三级运行参数设置控制与显示
+  * @param	KEY2		按键2
+  * @param	Rocker_UP	摇杆上
+  * @param	Rocker_Down	摇杆下
+  * @note	通过该函数，用户可使用板载按键与OLED屏幕实现查看系统部分参数以及对系统执行部分控制
+  **/
+void Menu_RUN_Parm_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_Tigger_State Rocker_Down)
+{
+	//按键2按下，退出
+	if(KEY2)
+	{	//菜单等级-1
+		Menu_Parm.Menu_Level--;
+	}
+
+	//显示
+	OLED_ShowString(0,0,"无需设置",OLED_8X16);
+}
+
+/** @brief	三级运行记录显示
+  * @param	KEY2		按键2
+  * @param	Rocker_UP	摇杆上
+  * @param	Rocker_Down	摇杆下
+  * @note	通过该函数，用户可使用板载按键与OLED屏幕实现查看系统部分参数以及对系统执行部分控制
+  **/
+void Menu_RUN_View(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_Tigger_State Rocker_Down)
+{
+	static int Menu_Pointer = 0;		//菜单指针
+	static signed char Menu_Y_Shift=0;	//显示Y轴偏移
+	//摇杆向下按
+	if(Rocker_Down)
+	{	//选择下翻
+		Menu_Pointer++;
+		//超过长度，回到顶端
+		if(Menu_Pointer == 7) Menu_Pointer = 0;	
+		//菜单偏移
+		if(Menu_Pointer >= 3) Menu_Y_Shift++;		//偏移
+		if(Menu_Y_Shift >= 3) Menu_Y_Shift = 3;		//限位
+		if(Menu_Pointer == 0) Menu_Y_Shift = 0;		//复位	
+	}
+	//摇杆向上按
+	if(Rocker_UP)
+	{	//选择上翻
+		Menu_Pointer--;
+		//超过长度，回到底端
+		if(Menu_Pointer < 0) Menu_Pointer = 6;
+		//菜单偏移
+		if(Menu_Pointer <= 3) Menu_Y_Shift --;		//偏移	
+		if(Menu_Y_Shift <= 0) Menu_Y_Shift = 0;		//限位
+		if(Menu_Pointer == 6) Menu_Y_Shift = 3;	//复位
+	}
+
+	//按键2按下，退出
+	if(KEY2)
+	{	//菜单等级-1
+		Menu_Parm.Menu_Level--;
+	}
+
+	//显示
+	OLED_Printf(0,0 - Menu_Y_Shift*16,OLED_8X16,"直立景点%d个",RUN_Parm.Word_Test_Num);
+	OLED_Printf(0,16 - Menu_Y_Shift*16,OLED_8X16,"1-5号平台%d个",5 * RUN_Parm.Round);
+	OLED_Printf(0,32 - Menu_Y_Shift*16,OLED_8X16,"6号平台0个");
+	OLED_Printf(0,48 - Menu_Y_Shift*16,OLED_8X16,"7号平台%d个",RUN_Parm.Round);
+	OLED_Printf(0,64 - Menu_Y_Shift*16,OLED_8X16,"8号平台%d个",RUN_Parm.Round);
+	OLED_Printf(0,80 - Menu_Y_Shift*16,OLED_8X16,"回家%d次",RUN_Parm.Round);
+	OLED_Printf(0,96 - Menu_Y_Shift*16,OLED_8X16,"总分%4d分",((RUN_Parm.Word_Test_Num * 11) + 390) * 1.2 - 30);
+
+	//控制指针指向的参数高亮显示
+	switch(Menu_Pointer)
+	{	
+		case 0:	OLED_ReverseArea(0,0 - Menu_Y_Shift*16,80,16);
+				break;
+		case 1:	OLED_ReverseArea(0,16 - Menu_Y_Shift*16,80,16);
+				break;
+		case 2:	OLED_ReverseArea(0,32 - Menu_Y_Shift*16,80,16);
+				break;
+		case 3:	OLED_ReverseArea(0,48 - Menu_Y_Shift*16,80,16);
+				break;
+		case 4:	OLED_ReverseArea(0,64 - Menu_Y_Shift*16,80,16);
+				break;
+		case 5:	OLED_ReverseArea(0,80 - Menu_Y_Shift*16,80,16);
+				break;
+		case 6:	OLED_ReverseArea(0,96 - Menu_Y_Shift*16,80,16);
+				break;
+	}
+}
 
 /** @brief	三级速度设置菜单控制与显示
   * @param	KEY2		按键2

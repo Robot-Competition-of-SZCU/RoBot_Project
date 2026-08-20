@@ -220,6 +220,16 @@
           <WinNumber>1</WinNumber>
           <ItemText>Grayscale,0x0A</ItemText>
         </Ww>
+        <Ww>
+          <count>13</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>Packet</ItemText>
+        </Ww>
+        <Ww>
+          <count>14</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>Visual_Identity_RX_Buffer</ItemText>
+        </Ww>
       </WatchWindow1>
       <MemoryWindow1>
         <Mm>

@@ -75,8 +75,8 @@ void User_Init(void)
 	UART_Audio_Mode_Control();
 	// HAL_Delay(20);
 	// UART_Audio_Control(0);
-	
-	Motor_Start();
+
+	Motor_Start();			//电机控制启动
 	
 	//HAL_TIM_Base_Start_IT(&htim6);		//开启TIM6定时中断，间隔为1ms
 }
@@ -250,6 +250,22 @@ void GPIO_IT_Trigger_Task(void *argument)
   }
 }
 
+/** @brief	串口接收解析任务
+  * @note	解析串口数据
+  **/
+void Visual_Identity_Task(void *argument)
+{
+  for(;;)
+  {
+    //阻塞等待串口数据包，收到后立即解析，不影响下一次接收
+    if(osMessageQueueGet(Visual_Identity_QueueHandle, &Packet, NULL, osWaitForever) == osOK)
+    {
+      Visual_Identity_Data_Analysis(&Packet);	//视觉识别数据解析
+    }
+  }
+  /* USER CODE END Visual_Identity_Task */
+}
+
 /** @brief	串口调试任务
   * @note	执行间隔10ms
   **/
@@ -288,6 +304,23 @@ void UART_Debug_Task(void *argument)
 		// memcpy(&Line_Patrol_PID.Ki,&Debug_Receive_Buffer[9],sizeof(float));
 		// memcpy(&Line_Patrol_PID.Kd,&Debug_Receive_Buffer[13],sizeof(float));
 	}
+}
+
+/** @brief	任务栈溢出钩子函数
+  * @note	由FreeRTOS内核在检测到任务栈溢出时调用，进入死循环并显示故障信息
+  **/
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
+{
+	//溢出任务信息，防止编译器警告
+	(void)xTask;
+	(void)pcTaskName;
+
+	//OLED显示硬件故障信息
+	OLED_HardFault_Error_Message_Show();
+
+	//关闭中断，进入死循环，便于现场排查
+	taskDISABLE_INTERRUPTS();
+	for(;;) {}
 }
 	
 

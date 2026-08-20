@@ -19,6 +19,7 @@
 一级菜单+-二级运行设置菜单--+-开始运行
 		|					|
 		|					+-运行设置
+		|					+-运行记录
 		|
 		+-二级系统设置菜单--+-三级速度设置菜单--+-基础速度设置
 		|					|					+-加速度设置
@@ -70,7 +71,7 @@ typedef enum{
 	Level3,
 	Level4,
 	Level5,
-hghghfghfghfghfghfghfghfghfhfghfhfghfgh}Menu_Level_Set;
+}Menu_Level_Set;
 
 //二级菜单界面码枚举
 typedef enum{
@@ -80,6 +81,12 @@ typedef enum{
 	Servo_Set,		//舵机设置菜单
 	Task_Show,		//任务查看菜单	
 }Menu_IF_L2;
+
+//三级运行菜单
+typedef enum{
+	RUN_Parm_Set = 0,	//运行参数设置
+	RUN_View,			//运行记录
+}Menu_RUN_Set_L3;
 
 //三级系统设置菜单
 typedef enum{
@@ -149,6 +156,10 @@ void Menu_Level2_Servo_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2);
 //二级任务设置窗口控制与显示
 void Menu_Level2_Task_Show(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_Tigger_State Rocker_Down);
 
+//三级运行参数设置控制与显示
+void Menu_RUN_Parm_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_Tigger_State Rocker_Down);
+//三级运行记录显示
+void Menu_RUN_View(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_Tigger_State Rocker_Down);
 //三级速度设置菜单控制与显示
 void Menu_Level3_Speed_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_Tigger_State Rocker_Down);
 //三级PID设置菜单控制与显示

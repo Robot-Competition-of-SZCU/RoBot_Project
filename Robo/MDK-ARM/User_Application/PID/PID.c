@@ -25,6 +25,9 @@ PID_Incremental PID_Motor2;
 PID_Incremental PID_Motor3;
 PID_Incremental PID_Motor4;
 
+//编码器反馈丢失计数，供诊断显示使用
+uint16_t Encoder_Lost_Times[4] = {0,0,0,0};
+
 //巡线控制PID结构体
 PID_Positional Line_Patrol_PID;	
 
@@ -69,7 +72,7 @@ void PID_Parameter_Init(void)
 	PID_Motor4.DT		= 5;		//调控周期，单位ms
 
 	//巡线PID参数设置
-	Line_Patrol_PID.Kp = 0.12f;			//比例系数
+	Line_Patrol_PID.Kp = 0.08f;			//比例系数
 	// Line_Patrol_PID.Ki = 0.0f;		//积分系数
 	// Line_Patrol_PID.Kd = 0.0f;		//微分系数
 	Line_Patrol_PID.ErrorInt_Min = -1; 	//积分最小限幅
@@ -87,7 +90,7 @@ void PID_Parameter_Init(void)
 	Angle_Patrol_PID.Out_Max 	= 1;		//输出最大限幅
 
 	//弧线转弯PID参数设置，位置式PID
-	Arc_Turn_PID.Kp 		= 0.06f;	//比例系数
+	Arc_Turn_PID.Kp 		= 0.35f;	//比例系数
 	Arc_Turn_PID.Ki 		= 0.0f;		//积分系数
 	Arc_Turn_PID.Kd 		= 0.0f;		//微分系数
 	Arc_Turn_PID.ErrorInt_Min = -0.5f; 	//积分最小限幅
@@ -273,6 +276,37 @@ void Arc_Turn_Control_Compute(void)
 	if(Motor_Control_Parm.Motor4_Speed > 10) Motor_Control_Parm.Motor4_Speed = 10;
 }
 
+/** @brief	内环编码器反馈异常防护
+  * @param	Pid		PID结构体
+  * @param	Lost_Times	丢失计数指针
+  * @note	运行中输出已建立而反馈突然归零，判定编码器反馈丢失
+  * @note	短时丢失：冻结PID输出，防止内环正反馈使输出猛然加大
+  * @note	长期丢失：输出逐步衰减归零，防止编码器永久损坏时持续冲车
+  **/
+static void Encoder_Feedback_Protect(PID_Incremental* Pid,uint16_t* Lost_Times)
+{
+	//输出已建立(大于死区)、目标不为0、反馈却为0：运行中编码器反馈丢失
+	if(Pid->Target != 0 && Pid->Out > 5.0f && Pid->Actual <= 0.05f)
+	{
+		//累计丢失时间
+		(*Lost_Times)++;
+		//连续丢失超过100ms，输出逐步衰减至0
+		if(*Lost_Times >= 20)
+		{
+			Pid->Out -= 5.0f;
+			if(Pid->Out < 0) Pid->Out = 0;
+			*Lost_Times = 20;	//保持饱和，持续衰减
+		}
+		//短时间丢失：冻结输出，不执行PID计算
+	}
+	else
+	{
+		//反馈正常，恢复PID计算
+		*Lost_Times = 0;
+		PID_Incremental_Compute(Pid);
+	}
+}
+
 /** @brief	电机速度控制
   * @note	内环PID解算，输出控制
   **/
@@ -305,11 +339,11 @@ void Motor_Speed_Control(void)
 	PID_Motor3.Target = Motor_Control_Parm.Motor3_Speed;
 	PID_Motor4.Target = Motor_Control_Parm.Motor4_Speed;
 	
-	//进行PID计算，输出参数为PWM占空比
-	PID_Incremental_Compute(&PID_Motor1);
-	PID_Incremental_Compute(&PID_Motor2);
-	PID_Incremental_Compute(&PID_Motor3);
-	PID_Incremental_Compute(&PID_Motor4);
+	//进行PID计算，输出参数为PWM占空比，带编码器反馈丢失防护
+	Encoder_Feedback_Protect(&PID_Motor1,&Encoder_Lost_Times[0]);
+	Encoder_Feedback_Protect(&PID_Motor2,&Encoder_Lost_Times[1]);
+	Encoder_Feedback_Protect(&PID_Motor3,&Encoder_Lost_Times[2]);
+	Encoder_Feedback_Protect(&PID_Motor4,&Encoder_Lost_Times[3]);
 	
 	//输出死区控制，目标值为0，则关断输出
 	if(PID_Motor1.Target == 0) PID_Motor1.Out = 0;

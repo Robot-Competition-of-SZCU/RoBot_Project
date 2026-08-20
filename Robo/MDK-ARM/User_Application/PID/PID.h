@@ -12,6 +12,7 @@
 #ifndef __PID_H__
 #define __PID_H__
 
+#include "stm32f4xx_hal.h"
 
 //增量式PID结构体
 //用于电机转速控制
@@ -41,6 +42,9 @@ extern PID_Incremental PID_Motor1;
 extern PID_Incremental PID_Motor2;
 extern PID_Incremental PID_Motor3;
 extern PID_Incremental PID_Motor4;
+
+//编码器反馈丢失计数，供诊断显示使用
+extern uint16_t Encoder_Lost_Times[4];
 
 //位置式PID结构体
 typedef struct		
