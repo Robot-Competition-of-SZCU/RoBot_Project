@@ -431,9 +431,9 @@ void Menu_Level2_Scan_Line_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_T
 		//指针偏移为13，增加触发阈值
 		else if(Menu_Pointer == 13)
 		{
-			Grayscale.Grayscale_ADC_Trigger_Threshold += 1;
-			if(Grayscale.Grayscale_ADC_Trigger_Threshold >= 100)
-				Grayscale.Grayscale_ADC_Trigger_Threshold =100;
+			Grayscale_Ctrl.Grayscale_ADC_Trigger_Threshold += 1;
+			if(Grayscale_Ctrl.Grayscale_ADC_Trigger_Threshold >= 100)
+				Grayscale_Ctrl.Grayscale_ADC_Trigger_Threshold =100;
 		}
 	}
 	//摇杆上按，上翻选项
@@ -451,9 +451,9 @@ void Menu_Level2_Scan_Line_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_T
 		//指针偏移为13，增加触发阈值
 		else if(Menu_Pointer == 13)
 		{
-			Grayscale.Grayscale_ADC_Trigger_Threshold -= 1;
-			if(Grayscale.Grayscale_ADC_Trigger_Threshold <= 0)
-				Grayscale.Grayscale_ADC_Trigger_Threshold =0;
+			Grayscale_Ctrl.Grayscale_ADC_Trigger_Threshold -= 1;
+			if(Grayscale_Ctrl.Grayscale_ADC_Trigger_Threshold <= 0)
+				Grayscale_Ctrl.Grayscale_ADC_Trigger_Threshold =0;
 		}
 	}
 	//按键2按下，退出当前菜单
@@ -483,7 +483,7 @@ void Menu_Level2_Scan_Line_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_T
 			//控制指针在第三栏，操作为翻转灰度计算模式
 			case 2:
 					//计算模式设置
-					Grayscale.Compute_Map_Mode =! Grayscale.Compute_Map_Mode;
+					Grayscale_Ctrl.Compute_Map_Mode =! Grayscale_Ctrl.Compute_Map_Mode;
 					break;
 			//控制指针在第四栏，操作为进入调整触发阈值
 			case 3:
@@ -506,9 +506,9 @@ void Menu_Level2_Scan_Line_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_T
 	OLED_ShowString(0,48-Menu_Y_Shift*16,"触发阈值:",OLED_8X16);
 	OLED_ShowString(0,64-Menu_Y_Shift*16,"是否存储参数→",OLED_8X16);
 
-	OLED_Printf(90,48-Menu_Y_Shift*16,OLED_8X16,"%3.0f",Grayscale.Grayscale_ADC_Trigger_Threshold);
+	OLED_Printf(90,48-Menu_Y_Shift*16,OLED_8X16,"%3.0f",Grayscale_Ctrl.Grayscale_ADC_Trigger_Threshold);
 	
-	if(Grayscale.Compute_Map_Mode == 0)
+	if(Grayscale_Ctrl.Compute_Map_Mode == 0)
 		OLED_ShowString(80,32-Menu_Y_Shift*16,"正向",OLED_8X16);
 	else
 		OLED_ShowString(80,32-Menu_Y_Shift*16,"反向",OLED_8X16);
@@ -1065,7 +1065,7 @@ void Menu_Level3_Gray_Calib(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2)
 	{	//菜单等级-1
 		Menu_Parm.Menu_Level--;
 	}
-	//按键1长按，开始校准
+	//按键1长按，进行校准
 	if(KEY1 == long_Tigger)
 	{
 		//最大极限值校准
@@ -1078,7 +1078,7 @@ void Menu_Level3_Gray_Calib(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2)
 			OLED_Update();		//刷新屏幕
 			for(;;)
 			{	//校准最大极限值，校准完退出循环
-				if(Grayscale_ADC_Calibration(Calibration_Max) == HAL_OK)
+				if(Grayscale_ADC_Calibration(Calibration_Max) == Calibration_OK)
 					break;
 				//延时1ms
 				osDelay(1);
@@ -1107,7 +1107,7 @@ void Menu_Level3_Gray_Calib(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2)
 			OLED_Update();		//刷新屏幕
 			for(;;)
 			{	//校准最大极限值，校准完退出循环
-				if(Grayscale_ADC_Calibration(Calibration_Min) == HAL_OK)
+				if(Grayscale_ADC_Calibration(Calibration_Min) == Calibration_OK)
 					break;
 				//延时1ms
 				osDelay(1);
@@ -1463,8 +1463,8 @@ void Menu_Level3_Task_High_Com(KEY_Tigger_State KEY2)
 void Menu_Level4_Speed_Set(KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_Tigger_State Rocker_Down,KEY_Tigger_State Rocker_Right,KEY_Tigger_State Rocker_Left)
 {
 	char Show_Num[8];
-	//字符化参数
-	sprintf(Show_Num,"%05.2f",Motor_Control_Parm.Base_High_Speed_Set);
+//	//字符化参数
+//	sprintf(Show_Num,"%05.2f",Motor_Control_Parm.Base_High_Speed_Set);
 
 	 static int Menu_Pointer = 0;		//菜单指针
 	//摇杆左按
@@ -1534,8 +1534,8 @@ void Menu_Level4_Speed_Set(KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_
 				break;
 	}
 
-	//参数化字符
-	sscanf(Show_Num,"%f",&Motor_Control_Parm.Base_High_Speed_Set);
+//	//参数化字符
+//	sscanf(Show_Num,"%f",&Motor_Control_Parm.Base_High_Speed_Set);
 }
 
 /** @brief	四级加速度设置与显示
@@ -1545,8 +1545,8 @@ void Menu_Level4_Speed_Set(KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_
 void Menu_Level4_Accelerated_Speed_Set(KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_Tigger_State Rocker_Down,KEY_Tigger_State Rocker_Right,KEY_Tigger_State Rocker_Left)
 {
 	char Show_Num[8];
-	//字符化参数
-	sprintf(Show_Num,"%05.2f",Motor_Control_Parm.Accelerated_Speed);
+	// //字符化参数
+	// sprintf(Show_Num,"%05.2f",Motor_Control_Parm.Accelerated_Speed);
 
 	 static int Menu_Pointer = 0;		//菜单指针
 	//摇杆左按
@@ -1616,8 +1616,8 @@ void Menu_Level4_Accelerated_Speed_Set(KEY_Tigger_State KEY2,KEY_Tigger_State Ro
 				break;
 	}
 
-	//参数化字符
-	sscanf(Show_Num,"%f",&Motor_Control_Parm.Accelerated_Speed);
+	// //参数化字符
+	// sscanf(Show_Num,"%f",&Motor_Control_Parm.Accelerated_Speed);
 }
 
 /** @brief	四级电机转速PID显示

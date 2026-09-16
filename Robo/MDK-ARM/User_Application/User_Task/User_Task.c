@@ -59,22 +59,23 @@ void User_Init(void)
 	//单片机首次下载程序时不要运行该函数，否则会产生数据错误
 	//再执行一遍flash写入操作后方可运行该函数
 	Flash_Read();			//从Flash中读取数据
+	//HAL_Delay(100);
 	
 	//Motor_Init();			//电机初始化
 	Servo_Init();			//舵机初始化
 	Encoder_Init();			//编码器初始化
 	UART_Receive_Init();	//串口接收初始化
-	Grayscale_ADC_Init();	//灰度传感器ADC采集初始化
+	Grayscale_Init();	//灰度传感器ADC采集初始化
 	OLED_Init();			//OLED初始化
 	RUN_Parm_Init();		//运行参数初始化
 	PID_Parameter_Init();	//PID参数初始化
 	
-	HAL_Delay(1000);
-	UART_Audio_Loud_Control(30);
-	HAL_Delay(20);
-	UART_Audio_Mode_Control();
+	// HAL_Delay(1000);
+	// UART_Audio_Loud_Control(30);
 	// HAL_Delay(20);
-	// UART_Audio_Control(0);
+	// UART_Audio_Mode_Control();
+	// HAL_Delay(20);
+	// UART_Audio_Control(100);
 
 	Motor_Start();			//电机控制启动
 	
@@ -140,7 +141,7 @@ void High_Compute_Task(void *argument)
 	for(;;)
 	{	//1ms阻塞延时
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-		Grayscale_ADC_Compute();		//灰度传感器ADC解算
+		Grayscale_Data_Stream_Processing();				//灰度数据流处理
 	}
 }
 
@@ -159,7 +160,7 @@ void Slow_Compute_Task(void *argument)
 		static short Time_Base;	//时间基准 
 		Time_Base++;
 
-		RUN_Speed_Control();				//运行速度控制
+		RUN_Speed_Control(5);				//运行速度控制
 		Mileage_Int_Compute();				//里程累计
 		
 		//5ms延时任务
@@ -174,7 +175,6 @@ void Slow_Compute_Task(void *argument)
 		//10ms延时任务
 		if(Time_Base % 2 == 0)
 		{
-			Grayscale_ADC_Map_Compute();	//灰度传感器ADC映射计算
 			//RUN_Control();				//运行控制
 			//根据RUN_Parm.Control_State状态切换控制方式
 			if(RUN_Parm.Control_State == Direct_Control)
@@ -186,7 +186,7 @@ void Slow_Compute_Task(void *argument)
 			}
 			else if(RUN_Parm.Control_State == ScanLine_Control)
 			{
-				Scan_Line_Control();			//巡线控制
+				Scan_Line_Control();				//巡线控制
 			}
 			else if(RUN_Parm.Control_State == Angle_Control)
 			{
@@ -200,7 +200,7 @@ void Slow_Compute_Task(void *argument)
 				Arc_Turn_Control_Compute();			//行进中弧线转弯控制
 			}
 
-			Servo_Control();				//舵机控制
+			Servo_Control();						//舵机控制
 		}
 		//1000ms延时任务
 		if(Time_Base == 200)
@@ -303,6 +303,20 @@ void UART_Debug_Task(void *argument)
 		// memcpy(&Motor_Control_Parm.Motor1_Speed,&Debug_Receive_Buffer[1],sizeof(float));
 		// memcpy(&Line_Patrol_PID.Ki,&Debug_Receive_Buffer[9],sizeof(float));
 		// memcpy(&Line_Patrol_PID.Kd,&Debug_Receive_Buffer[13],sizeof(float));
+
+		// //电机转速闭环调试接口
+		// static char Send_Data[40];
+		
+		// //接收调试串口发送的参数
+		// memcpy(&Motor_Control_Parm.Motor4_Speed,&Debug_Receive_Buffer[1],sizeof(float));
+		// memcpy(&PID_Motor4.Kp,&Debug_Receive_Buffer[5],sizeof(float));
+		// memcpy(&PID_Motor4.Ki,&Debug_Receive_Buffer[9],sizeof(float));
+
+		// //发送调试数据
+		// memcpy(&Send_Data[0],&PID_Motor4.Target,sizeof(float));
+		// memcpy(&Send_Data[4],&Encoder4.RMP_S,sizeof(float));
+		// UART_Debug_Send_Date(Send_Data,8);
+
 	}
 }
 

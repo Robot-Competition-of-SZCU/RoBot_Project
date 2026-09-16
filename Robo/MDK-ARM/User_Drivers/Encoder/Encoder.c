@@ -112,13 +112,13 @@ void Encoder_Compute(void)
 	
 	//静态偏差消除
 	//无输出或弱输出时，编码器会因轮子抖动引入偏差，通过以下判断进行消除
-	if(PID_Motor1.Out <= 5)
+	if(PID_Motor1.Out < 1)
 		Encoder1.Actual_Frequiency = 0;
-	if(PID_Motor2.Out <= 5)
+	if(PID_Motor2.Out < 1)
 		Encoder2.Actual_Frequiency = 0;
-	if(PID_Motor3.Out <= 5)
+	if(PID_Motor3.Out < 1)
 		Encoder3.Actual_Frequiency = 0;
-	if(PID_Motor4.Out <= 5)
+	if(PID_Motor4.Out < 1)
 		Encoder4.Actual_Frequiency = 0;
 }
 

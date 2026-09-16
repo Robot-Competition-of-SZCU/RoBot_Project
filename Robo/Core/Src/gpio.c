@@ -146,20 +146,13 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SPI_CS1_Pin SPI_CS2_Pin SPI_CS3_Pin */
-  GPIO_InitStruct.Pin = SPI_CS1_Pin|SPI_CS2_Pin|SPI_CS3_Pin;
+  /*Configure GPIO pins : SPI_CS1_Pin SPI_CS2_Pin SPI_CS3_Pin M1_Control_Pin
+                           M2_Control_Pin M3_Control_Pin M4_Control_Pin */
+  GPIO_InitStruct.Pin = SPI_CS1_Pin|SPI_CS2_Pin|SPI_CS3_Pin|M1_Control_Pin
+                          |M2_Control_Pin|M3_Control_Pin|M4_Control_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : M1_Control_Pin M2_Control_Pin M3_Control_Pin M4_Control_Pin
-                           Digial_OUT5_Pin Digial_OUT6_Pin Digial_OUT7_Pin Digial_OUT8_Pin */
-  GPIO_InitStruct.Pin = M1_Control_Pin|M2_Control_Pin|M3_Control_Pin|M4_Control_Pin
-                          |Digial_OUT5_Pin|Digial_OUT6_Pin|Digial_OUT7_Pin|Digial_OUT8_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
   /*Configure GPIO pin : OLED_Select_Pin */
@@ -174,6 +167,13 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : Digial_OUT5_Pin Digial_OUT6_Pin Digial_OUT7_Pin Digial_OUT8_Pin */
+  GPIO_InitStruct.Pin = Digial_OUT5_Pin|Digial_OUT6_Pin|Digial_OUT7_Pin|Digial_OUT8_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI3_IRQn, 5, 0);

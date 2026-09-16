@@ -34,9 +34,9 @@ Visual_Identity_Packet Packet;				//视觉识别数据结构体
   **/
 void UART_Receive_Init(void)
 {
-	// //清空接收数据缓存区
-	// for(char i=0;i<66;i++)
-	// 	Debug_Receive_Buffer[i] = 0;
+	//清空接收数据缓存区
+	for(char i=0;i<66;i++)
+		Debug_Receive_Buffer[i] = 0;
 	//开启UART3接收与DMA传输
 	HAL_UART_Receive_DMA(&huart3,(uint8_t*)Debug_Receive_Buffer,19);
 	//开启IMU姿态数据解析

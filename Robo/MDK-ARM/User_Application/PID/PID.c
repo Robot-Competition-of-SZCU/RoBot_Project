@@ -11,6 +11,7 @@
 ///////////////////////////////////////
 #include "PID.h"
 #include "stm32f4xx_hal.h"
+#include <stdlib.h>
 
 #include "Encoder.h"
 #include "Motor.h"
@@ -46,28 +47,28 @@ void PID_Parameter_Init(void)
 	PID_Motor1.Kp 		= 43;		//比例系数
 	PID_Motor1.Ki 		= 0.8f;		//积分系数
 	PID_Motor1.Kd 		= 0;		//微分系数
-	PID_Motor1.Out_Max	= 60;		//最大限幅
+	PID_Motor1.Out_Max	= 90;		//最大限幅
 	PID_Motor1.Out_Min	= 0;		//最小限幅
 	PID_Motor1.DT		= 5;		//调控周期，单位ms
 	//M2
 	PID_Motor2.Kp 		= 43;		//比例系数
 	PID_Motor2.Ki 		= 0.8f;		//积分系数
 	PID_Motor2.Kd 		= 0;		//微分系数
-	PID_Motor2.Out_Max	= 60;		//最大限幅
+	PID_Motor2.Out_Max	= 90;		//最大限幅
 	PID_Motor2.Out_Min	= 0;		//最小限幅
 	PID_Motor2.DT		= 5;		//调控周期，单位ms
 	//M3
 	PID_Motor3.Kp 		= 43;		//比例系数
 	PID_Motor3.Ki 		= 0.8f;		//积分系数
 	PID_Motor3.Kd 		= 0;		//微分系数
-	PID_Motor3.Out_Max	= 60;		//最大限幅
+	PID_Motor3.Out_Max	= 90;		//最大限幅
 	PID_Motor3.Out_Min	= 0;		//最小限幅
 	PID_Motor3.DT		= 5;		//调控周期，单位ms
 	//M4
 	PID_Motor4.Kp 		= 43;		//比例系数
 	PID_Motor4.Ki 		= 0.8f;		//积分系数
 	PID_Motor4.Kd 		= 0;		//微分系数
-	PID_Motor4.Out_Max	= 60;		//最大限幅
+	PID_Motor4.Out_Max	= 90;		//最大限幅
 	PID_Motor4.Out_Min	= 0;		//最小限幅
 	PID_Motor4.DT		= 5;		//调控周期，单位ms
 
@@ -90,13 +91,13 @@ void PID_Parameter_Init(void)
 	Angle_Patrol_PID.Out_Max 	= 1;		//输出最大限幅
 
 	//弧线转弯PID参数设置，位置式PID
-	Arc_Turn_PID.Kp 		= 0.35f;	//比例系数
+	Arc_Turn_PID.Kp 		= 0.1f;	//比例系数
 	Arc_Turn_PID.Ki 		= 0.0f;		//积分系数
 	Arc_Turn_PID.Kd 		= 0.0f;		//微分系数
 	Arc_Turn_PID.ErrorInt_Min = -0.5f; 	//积分最小限幅
 	Arc_Turn_PID.ErrorInt_Max = +0.5f;	//积分最大限幅
-	Arc_Turn_PID.Out_Min 	= -1;		//输出最小限幅
-	Arc_Turn_PID.Out_Max 	= 1;		//输出最大限幅
+	Arc_Turn_PID.Out_Min 	= -2;		//输出最小限幅
+	Arc_Turn_PID.Out_Max 	= 2;		//输出最大限幅
 }
 
 /** @brief	角度跟随控制
@@ -128,6 +129,7 @@ void Angle_Patrol_Control(void)
 		if(Motor_Control_Parm.Motor3_Speed < 0) Motor_Control_Parm.Motor3_Speed = 0;
 		if(Motor_Control_Parm.Motor4_Speed < 0) Motor_Control_Parm.Motor4_Speed = 0;
 		
+		//
 		if(Motor_Control_Parm.Motor1_Speed > 10) Motor_Control_Parm.Motor1_Speed = 10;
 		if(Motor_Control_Parm.Motor2_Speed > 10) Motor_Control_Parm.Motor2_Speed = 10;
 		if(Motor_Control_Parm.Motor3_Speed > 10) Motor_Control_Parm.Motor3_Speed = 10;
@@ -196,7 +198,7 @@ void Scan_Line_Control(void)
 {
 	//计算差速比
 	Line_Patrol_PID.Error_Last = Line_Patrol_PID.Error_Now;		//上次误差更新
-	Line_Patrol_PID.Error_Now = Grayscale.Grayscale_Map;		//本次误差更新
+	Line_Patrol_PID.Error_Now = Grayscale_Out.Grayscale_Map;		//本次误差更新
 	PID_Positional_Compute(&Line_Patrol_PID);					//PID计算
 	
 	//电机速度混合控制
@@ -264,11 +266,26 @@ void Arc_Turn_Control_Compute(void)
 	Motor_Control_Parm.Motor3_Speed = Motor_Control_Parm.Base_Speed - Arc_Turn_PID.Out * Motor_Control_Parm.Base_Speed;
 	Motor_Control_Parm.Motor4_Speed = Motor_Control_Parm.Base_Speed - Arc_Turn_PID.Out * Motor_Control_Parm.Base_Speed;
 
-	//速度限幅，最小为0保持前进不停顿
-	if(Motor_Control_Parm.Motor1_Speed < 0) Motor_Control_Parm.Motor1_Speed = 0;
-	if(Motor_Control_Parm.Motor2_Speed < 0) Motor_Control_Parm.Motor2_Speed = 0;
-	if(Motor_Control_Parm.Motor3_Speed < 0) Motor_Control_Parm.Motor3_Speed = 0;
-	if(Motor_Control_Parm.Motor4_Speed < 0) Motor_Control_Parm.Motor4_Speed = 0;
+	//方向控制，速度小于0时则反转该轮
+	if(Motor_Control_Parm.Motor1_Speed < 0)
+	{	Motor_Control_Parm.Motor1_Speed = abs(Motor_Control_Parm.Motor1_Speed);
+		Motor_Control_Parm.M1 = Retreat;
+	}else Motor_Control_Parm.M1 = Advance;
+
+	if(Motor_Control_Parm.Motor2_Speed < 0)
+	{	Motor_Control_Parm.Motor2_Speed = abs(Motor_Control_Parm.Motor2_Speed);
+		Motor_Control_Parm.M2 = Retreat;
+	}else Motor_Control_Parm.M2 = Advance;
+
+	if(Motor_Control_Parm.Motor3_Speed < 0)
+	{	Motor_Control_Parm.Motor3_Speed = abs(Motor_Control_Parm.Motor3_Speed);
+		Motor_Control_Parm.M3 = Retreat;
+	}else Motor_Control_Parm.M3 = Advance;
+
+	if(Motor_Control_Parm.Motor4_Speed < 0)
+	{	Motor_Control_Parm.Motor4_Speed = abs(Motor_Control_Parm.Motor4_Speed);
+		Motor_Control_Parm.M4 = Retreat;
+	}else Motor_Control_Parm.M4 = Advance;
 
 	if(Motor_Control_Parm.Motor1_Speed > 10) Motor_Control_Parm.Motor1_Speed = 10;
 	if(Motor_Control_Parm.Motor2_Speed > 10) Motor_Control_Parm.Motor2_Speed = 10;

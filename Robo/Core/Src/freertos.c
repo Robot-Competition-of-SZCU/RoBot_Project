@@ -120,7 +120,7 @@ const osThreadAttr_t GPIO_IT_Trigger_attributes = {
 osThreadId_t RUN_ControlHandle;
 const osThreadAttr_t RUN_Control_attributes = {
   .name = "RUN_Control",
-  .stack_size = 512 * 4,
+  .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityHigh1,
 };
 /* Definitions for Visual_Identity */

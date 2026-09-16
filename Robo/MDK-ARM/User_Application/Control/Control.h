@@ -14,6 +14,26 @@
 
 #include "Motor.h"
 
+//设定里程100时，其实际行进的距离
+#define Set_Mileage_100_Actual	118.0f
+
+//加减速参数
+#define Advance_Accelerated_Speed	20.0f		//前进加速度
+#define Advance_Deceleration_Speed	16.0f		//前进减速度
+
+#define Retreat_Accelerated_Speed	16.0f		//后退加速度
+#define Retreat_Deceleration_Speed	20.0f		//后退减速度
+
+#define Turn_Accelerated_Speed		15.0f		//旋转加速度
+#define Turn_Deceleration_Speed		15.0f		//旋转减速度
+
+//轮速与车体旋转角速度换算系数：角速度(度/s) = 轮速(圈/s) × 该系数
+//系数 = 57.2958 × 轮周长(cm) / 旋转半径(cm)，旋转半径 = 左右轮距的一半，需按实车标定
+#define Turn_Angle_Speed_Coefficient	200.0f
+
+//目标角度向右修正量，单位度，所有存储目标角度的操作统一使用
+#define TARGET_ANGLE_RIGHT_OFFSET	1.5f
+
 //电机控制状态结构体
 struct Motor_Control{
 	Motor_State M1;		//电机1运行方向
@@ -27,27 +47,11 @@ struct Motor_Control{
 	float Motor4_Speed;	//电机4目标速度，单位rmp/s
 
 	float Base_Speed;			//基础速度
-	float Base_Triger_Speed;	//基础目标速度
-	float Base_High_Speed_Set;	//基础高速度设置
-	float Base_Low_Speed_Set;	//基础低速度设置
-	float Accelerated_Speed;	//加速度
+	float Base_Triger_Speed;	//目标基础速度
 
 	float Turn_Speed;			//转向速度
 };
 extern struct Motor_Control Motor_Control_Parm;
-
-//前方障碍/路口标志位枚举
-typedef enum{
-	No_Front = 0,		//
-	Intersection,		//路口
-	Obstacle,			//障碍物	
-	Pass_Test,			//通行识别
-	Platform,			//平台
-	Scenic_Spot,		//景点
-	Seesaw,				//跷跷板
-	Go_Up_Bridge,		//上升桥梁
-	Dead_Zone,			//盲区
-}Front_State;
 
 //控制方式枚举
 typedef enum{
@@ -64,10 +68,17 @@ typedef enum{
 	Turn_Right,			//右转
 }Turn_Mode;
 
+//角度跟随控制模式结构体
 typedef enum{
 	Angle_Control_Advance = 0,	//前进模式
 	Angle_Control_Retreat,		//后退模式
 }Angle_Control_Mode;
+
+//运行结束减速模式结构体
+typedef enum{
+	End_Start_Deceleration = 0,	//终点开始减速
+	End_Finish_Deceleration,	//终点完成减速
+}RUN_END_Deceleration_Mode;
 
 //运行状态结构体
 struct RUN{
@@ -75,7 +86,6 @@ struct RUN{
 	char RUN_State;				//运行状态，0停止，1开始运行
 
 	float Mileage_Int;			//里程累计
-	char Path_Switching_Flag;	//路径切换标志位，为1时代表执行路径切换
 
 	Angle_Control_Mode Angle_Control_Choice;	//角度控制模式
 
@@ -87,9 +97,6 @@ struct RUN{
 	float Arc_Turn_End_Threshold;	//弧线转弯完成判定阈值，单位度
 	float Mileage_Parm;			//行驶数据存储区，对应行驶状态为直行时，表示行进里程，对应行驶状态为转向时，表示转向角度
 	float Travel_State;			//行驶状态存储区
-	Front_State	Front;			//障碍/路口标志位存储区
-	int Path_Fill_Pointer;		//路径装填指针
-	int Path_Pointer;			//路径指针
 
 	int Sensor_Middle;			//中部传感器触发状态
 	int Sensor_Left;			//左侧光电传感器触发状态
@@ -109,12 +116,16 @@ struct RUN{
 };
 extern struct RUN RUN_Parm;
 
-void RUN_Parm_Init(void);		//运行参数初始化
-void RUN_Speed_Control(void);	//运行速度控制
+void RUN_Parm_Init(void);			//运行参数初始化
+void RUN_Speed_Control(float DT);	//运行速度控制
 
 void Run_Record_Add(uint8_t Code);	//运行记录添加，1-8为平台，9-13为景点
 
 void Mileage_Int_Compute(void);	//里程累计函数
+void Scan_Line_RUN_Control(float RUN_Speed,float Stop_Speed,float Mileage,RUN_END_Deceleration_Mode End_Mode);	//巡线运行控制
+void Angle_Following_RUN_Control(Angle_Control_Mode Mode,float RUN_Speed,float Stop_Speed,float Mileage,RUN_END_Deceleration_Mode End_Mode);	//角度跟随运行控制
+
+void Mileage_Int_Test(void);		//里程测试函数
 
 void GPIO_Trigger_Control(uint32_t GPIO_Pin);	//GPIO中断触发任务
 
@@ -124,21 +135,23 @@ char Colour_Test_Recognition(void);		//颜色识别
 void RUN_System_Control(void);			//系统运行控制任务
 
 
-void Car_Turn_Control(Turn_Mode Mode,float Turn_Angle);	//转弯控制
-void Car_Arc_Turn_Control(Turn_Mode Mode,float Turn_Angle);//行进中弧线转弯控制，不停顿
-void Stop_Control(void);				//停止控制
+void Car_Turn_Control(Turn_Mode Mode,float Turn_Angle,float Turn_Speed);	//转弯控制
+void Car_Arc_Turn_Control(Turn_Mode Mode,float Turn_Angle,float Turn_Speed);	//行进中弧线转弯控制，不停顿
+void Car_Stop(void);				//停止控制
 void Mileage_Arrive_Wait(float Mileage);//等待到达设定里程
 
 void Go_Up_Platform(void);				//上平台
 void Go_Down_Platform(void);			//下平台
 void Hit_The_Scenic_Spot(void);			//撞景点
 void Turn_Around(void);					//原地转向
+void Turn_Around_For_8(void);			//原地转向，平台8特供
 void Cross_the_Mountain(void);			//翻越山
 void Cross_the_Long_Wave_Board(void);	//翻越长波浪板
 void Cross_the_Short_Wave_Board(void);	//翻越短波浪板
 
 //前段路程
-void Platform1_to_Platform2(void);				//平台1至平台2
+void Platform1_to_Platform2_on_Bridge(void);	//平台1至平台2,走桥
+void Platform1_to_Platform2_no_Bridge(void);	//平台1至平台2,不走桥
 void Platform2_to_Scenic_Spot2(void);			//平台2至景点2
 void Scenic_Spot2_to_Platform4(void);			//景点2至平台4
 void Platform4_to_Scenic_Spot1(void);			//平台4至景点1
@@ -155,6 +168,11 @@ void Traffic_Sign_3_Pass(void);					//通行指示牌3通过
 void Traffic_Sign_4_Test(void);					//通行指示牌4检测
 void Traffic_Sign_4_Pass(void);					//通行指示牌4通过
 
+//直接通过
+void Traffic_Sign_1_Pass_Direct(void);					//1点直接通过
+void Traffic_Sign_2_Pass_Direct(void);					//2点直接通过
+void Traffic_Sign_3_Pass_Direct(void);					//3点直接通过
+void Traffic_Sign_4_Pass_Direct(void);					//4点直接通过
 
 
 //后段路程
@@ -168,6 +186,14 @@ void Platform7_to_Platform8(void);				//平台7至平台8
 void Platform8_to_Scenic_Spot3(void);			//平台8至景点3
 void Scenic_Spot3_to_Test_C(void);				//景点3至C点
 
+//后段路程，改
+void Platform7_to_Scenic_Spot3_Change(void);	//平台7至景点3，改
+void Scenic_Spot3_to_Platform8_Change(void);	//景点3至平台8，改
+void Platform8_to_Test_E_Change(void);			//平台8至E点，改
+
+//回家，改
+void Test_E_to_Test_A_to_Alpha_Change(void);	//C点至A点至Alpha，改
+void Test_E_to_Test_B_to_Alpha_Change(void);	//C点至B点至Alpha，改
 
 //回家
 void Test_C_to_Test_A_to_Alpha(void);			//C点至A点至Alpha

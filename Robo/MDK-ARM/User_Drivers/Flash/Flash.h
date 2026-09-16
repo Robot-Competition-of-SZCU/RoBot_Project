@@ -31,9 +31,6 @@ struct Flash{
 	float Servo_Angle_Max_Limit[8];	//舵机最大角度限位
 	float Servo_Angle_Min_Limit[8];	//舵机最小角度限位
 
-	//运行数据
-	float Base_High_Speed_Set;	//基础速度设置
-	float Accelerated_Speed;//加速度
 };
 
 HAL_StatusTypeDef Flash_Write(void);		//Flash写数据
