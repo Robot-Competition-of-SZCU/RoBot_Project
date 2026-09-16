@@ -28,10 +28,12 @@
 
 #include "User_Task.h"
 #include "stm32f4xx_it.h"
+#include "UART.h"
 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
+typedef StaticQueue_t osStaticMessageQDef_t;
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
@@ -107,6 +109,49 @@ const osThreadAttr_t High_Compute_attributes = {
   .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityAboveNormal,
 };
+/* Definitions for GPIO_IT_Trigger */
+osThreadId_t GPIO_IT_TriggerHandle;
+const osThreadAttr_t GPIO_IT_Trigger_attributes = {
+  .name = "GPIO_IT_Trigger",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityRealtime,
+};
+/* Definitions for RUN_Control */
+osThreadId_t RUN_ControlHandle;
+const osThreadAttr_t RUN_Control_attributes = {
+  .name = "RUN_Control",
+  .stack_size = 1024 * 4,
+  .priority = (osPriority_t) osPriorityHigh1,
+};
+/* Definitions for Visual_Identity */
+osThreadId_t Visual_IdentityHandle;
+const osThreadAttr_t Visual_Identity_attributes = {
+  .name = "Visual_Identity",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityHigh2,
+};
+/* Definitions for GPIO_Tigger_State */
+osMessageQueueId_t GPIO_Tigger_StateHandle;
+uint8_t GPIO_Tigger_Buffer[ 16 * sizeof( uint32_t ) ];
+osStaticMessageQDef_t GPIO_Tigger_Buffer_ControlBlock;
+const osMessageQueueAttr_t GPIO_Tigger_State_attributes = {
+  .name = "GPIO_Tigger_State",
+  .cb_mem = &GPIO_Tigger_Buffer_ControlBlock,
+  .cb_size = sizeof(GPIO_Tigger_Buffer_ControlBlock),
+  .mq_mem = &GPIO_Tigger_Buffer,
+  .mq_size = sizeof(GPIO_Tigger_Buffer)
+};
+/* Definitions for Visual_Identity_Queue */
+osMessageQueueId_t Visual_Identity_QueueHandle;
+uint8_t Visual_Identity_QueueBuffer[ 4 * 66 ];
+osStaticMessageQDef_t Visual_Identity_QueueControlBlock;
+const osMessageQueueAttr_t Visual_Identity_Queue_attributes = {
+  .name = "Visual_Identity_Queue",
+  .cb_mem = &Visual_Identity_QueueControlBlock,
+  .cb_size = sizeof(Visual_Identity_QueueControlBlock),
+  .mq_mem = &Visual_Identity_QueueBuffer,
+  .mq_size = sizeof(Visual_Identity_QueueBuffer)
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -122,6 +167,9 @@ void Set_And_Show_Task(void *argument);
 void Slow_Compute_Task(void *argument);
 void UART_Debug_Task(void *argument);
 void High_Compute_Task(void *argument);
+void GPIO_IT_Trigger_Task(void *argument);
+void RUN_Control_Task(void *argument);
+void Visual_Identity_Task(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -146,6 +194,13 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
+
+  /* Create the queue(s) */
+  /* creation of GPIO_Tigger_State */
+  GPIO_Tigger_StateHandle = osMessageQueueNew (16, sizeof(uint32_t), &GPIO_Tigger_State_attributes);
+
+  /* creation of Visual_Identity_Queue */
+  Visual_Identity_QueueHandle = osMessageQueueNew (4, 66, &Visual_Identity_Queue_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -175,6 +230,15 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of High_Compute */
   High_ComputeHandle = osThreadNew(High_Compute_Task, NULL, &High_Compute_attributes);
+
+  /* creation of GPIO_IT_Trigger */
+  GPIO_IT_TriggerHandle = osThreadNew(GPIO_IT_Trigger_Task, NULL, &GPIO_IT_Trigger_attributes);
+
+  /* creation of RUN_Control */
+  RUN_ControlHandle = osThreadNew(RUN_Control_Task, NULL, &RUN_Control_attributes);
+
+  /* creation of Visual_Identity */
+  Visual_IdentityHandle = osThreadNew(Visual_Identity_Task, NULL, &Visual_Identity_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -328,6 +392,60 @@ __weak void High_Compute_Task(void *argument)
     osDelay(1);
   }
   /* USER CODE END High_Compute_Task */
+}
+
+/* USER CODE BEGIN Header_GPIO_IT_Trigger_Task */
+/**
+* @brief Function implementing the GPIO_IT_Trigger thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_GPIO_IT_Trigger_Task */
+__weak void GPIO_IT_Trigger_Task(void *argument)
+{
+  /* USER CODE BEGIN GPIO_IT_Trigger_Task */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END GPIO_IT_Trigger_Task */
+}
+
+/* USER CODE BEGIN Header_RUN_Control_Task */
+/**
+* @brief Function implementing the RUN_Control thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_RUN_Control_Task */
+__weak void RUN_Control_Task(void *argument)
+{
+  /* USER CODE BEGIN RUN_Control_Task */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END RUN_Control_Task */
+}
+
+/* USER CODE BEGIN Header_Visual_Identity_Task */
+/**
+* @brief Function implementing the Visual_Identity thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Visual_Identity_Task */
+__weak void Visual_Identity_Task(void *argument)
+{
+  /* USER CODE BEGIN Visual_Identity_Task */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END Visual_Identity_Task */
 }
 
 /* Private application code --------------------------------------------------*/

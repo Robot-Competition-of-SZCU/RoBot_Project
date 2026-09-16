@@ -5,10 +5,20 @@
 #include "OLED_Data.h"
 #include "spi.h"
 
+#define OLED_I2C_Addr	0X78
+
 //宏定义OLED控制端口
 #define OLED_W_RES(x)		HAL_GPIO_WritePin(GPIOD,GPIO_PIN_10,(GPIO_PinState)(x))
 #define OLED_W_DC(x)		HAL_GPIO_WritePin(GPIOD,GPIO_PIN_11,(GPIO_PinState)(x))
 #define OLED_W_CS(x)		HAL_GPIO_WritePin(GPIOG,GPIO_PIN_2,(GPIO_PinState)(x))
+
+#define OLED_Select			HAL_GPIO_ReadPin(GPIOD,GPIO_PIN_0)
+
+//OLED控制模式枚举
+typedef enum{
+	SPI_Control_Mode = 0,
+	I2C_Control_Mode,
+}OLED_Control_Mode;
 
 
 /*参数宏定义*********************/

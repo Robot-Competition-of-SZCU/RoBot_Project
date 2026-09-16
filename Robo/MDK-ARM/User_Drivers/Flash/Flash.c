@@ -19,6 +19,8 @@
 #include "Grayscale_ADC.h"
 #include "Servo.h"
 
+#include "Control.h"
+
 //Flash存储数据结构体
 struct Flash Flash_Save;
 
@@ -32,8 +34,8 @@ HAL_StatusTypeDef Flash_Write(void)
 	//灰度传感器数据
 	memcpy(&Flash_Save.Grayscale_ADC_Max,&Grayscale.Grayscale_ADC_Max,sizeof(Grayscale.Grayscale_ADC_Max));
 	memcpy(&Flash_Save.Grayscale_ADC_Min,&Grayscale.Grayscale_ADC_Min,sizeof(Grayscale.Grayscale_ADC_Min));
-	memcpy(&Flash_Save.Compute_Map_Mode,&Grayscale.Compute_Map_Mode,sizeof(Grayscale.Compute_Map_Mode));
-	memcpy(&Flash_Save.Grayscale_ADC_Trigger_Threshold,&Grayscale.Grayscale_ADC_Trigger_Threshold,sizeof(Grayscale.Grayscale_ADC_Trigger_Threshold));
+	memcpy(&Flash_Save.Compute_Map_Mode,&Grayscale_Ctrl.Compute_Map_Mode,sizeof(Grayscale_Ctrl.Compute_Map_Mode));
+	memcpy(&Flash_Save.Grayscale_ADC_Trigger_Threshold,&Grayscale_Ctrl.Grayscale_ADC_Trigger_Threshold,sizeof(Grayscale_Ctrl.Grayscale_ADC_Trigger_Threshold));
 	//舵机数据
 	memcpy(&Flash_Save.Servo_EN_State,&Servo_State,sizeof(Servo_State));
 	
@@ -99,8 +101,8 @@ void Flash_Read(void)
 	//灰度传感器数据
 	memcpy(&Grayscale.Grayscale_ADC_Max,&Flash_Save.Grayscale_ADC_Max,sizeof(Grayscale.Grayscale_ADC_Max));
 	memcpy(&Grayscale.Grayscale_ADC_Min,&Flash_Save.Grayscale_ADC_Min,sizeof(Grayscale.Grayscale_ADC_Min));
-	memcpy(&Grayscale.Compute_Map_Mode,&Flash_Save.Compute_Map_Mode,sizeof(Grayscale.Compute_Map_Mode));
-	memcpy(&Grayscale.Grayscale_ADC_Trigger_Threshold,&Flash_Save.Grayscale_ADC_Trigger_Threshold,sizeof(Grayscale.Grayscale_ADC_Trigger_Threshold));
+	memcpy(&Grayscale_Ctrl.Compute_Map_Mode,&Flash_Save.Compute_Map_Mode,sizeof(Grayscale_Ctrl.Compute_Map_Mode));
+	memcpy(&Grayscale_Ctrl.Grayscale_ADC_Trigger_Threshold,&Flash_Save.Grayscale_ADC_Trigger_Threshold,sizeof(Grayscale_Ctrl.Grayscale_ADC_Trigger_Threshold));
 	//舵机数据
 	memcpy(&Servo_State,&Flash_Save.Servo_EN_State,sizeof(Servo_State));
 }
