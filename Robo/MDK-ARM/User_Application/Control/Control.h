@@ -17,15 +17,31 @@
 //设定里程100时，其实际行进的距离
 #define Set_Mileage_100_Actual	118.0f
 
-//加减速参数
-#define Advance_Accelerated_Speed	20.0f		//前进加速度
-#define Advance_Deceleration_Speed	16.0f		//前进减速度
+// //加减速参数
+// #define Advance_Accelerated_Speed	20.0f		//前进加速度
+// #define Advance_Deceleration_Speed	16.0f		//前进减速度
 
-#define Retreat_Accelerated_Speed	16.0f		//后退加速度
-#define Retreat_Deceleration_Speed	20.0f		//后退减速度
+// #define Retreat_Accelerated_Speed	16.0f		//后退加速度
+// #define Retreat_Deceleration_Speed	20.0f		//后退减速度
 
-#define Turn_Accelerated_Speed		15.0f		//旋转加速度
-#define Turn_Deceleration_Speed		15.0f		//旋转减速度
+// #define Turn_Accelerated_Speed		15.0f		//旋转加速度
+// #define Turn_Deceleration_Speed		15.0f		//旋转减速度
+
+//加减速参数结构体
+struct Accelerated_Speed{
+	float Advance_A_Speed;		//前进加速度
+	float Advance_D_Speed;		//前进减速度
+
+	float Retreat_A_Speed;		//后退加速度
+	float Retreat_D_Speed;		//后退减速度
+
+	float Turn_A_Speed;			//旋转加速度
+	float Turn_D_Speed;			//旋转减速度
+
+	float Turn_Right_Ratio;		//右转时，转速/角速比率，单位：角速度/轮速
+	float Turn_Left_Ratio;		//左转时，转速/角速比率，单位：角速度/轮速
+};
+extern struct Accelerated_Speed AD_S;
 
 //轮速与车体旋转角速度换算系数：角速度(度/s) = 轮速(圈/s) × 该系数
 //系数 = 57.2958 × 轮周长(cm) / 旋转半径(cm)，旋转半径 = 左右轮距的一半，需按实车标定
@@ -48,10 +64,17 @@ struct Motor_Control{
 
 	float Base_Speed;			//基础速度
 	float Base_Triger_Speed;	//目标基础速度
-
 	float Turn_Speed;			//转向速度
 };
 extern struct Motor_Control Motor_Control_Parm;
+
+typedef enum{
+	Car_Advance = 0,	//小车前进
+	Car_Retreat,		//小车后退
+	Car_Turn_Right,		//小车右转
+	Car_Turn_Left,		//小车左转
+	Car_Stop,			//小车停止
+}Car_Control_Mode;
 
 //控制方式枚举
 typedef enum{
@@ -116,8 +139,11 @@ struct RUN{
 };
 extern struct RUN RUN_Parm;
 
-void RUN_Parm_Init(void);			//运行参数初始化
-void RUN_Speed_Control(float DT);	//运行速度控制
+void RUN_Parm_Init(void);						//运行参数初始化
+void RUN_Speed_Control(float DT);				//运行速度控制
+void Car_Mode(Car_Control_Mode Control_Mode);	//小车状态控制
+
+void Turn_Speed_Calibration(void);				//小车旋转速度校准
 
 void Run_Record_Add(uint8_t Code);	//运行记录添加，1-8为平台，9-13为景点
 
@@ -137,7 +163,6 @@ void RUN_System_Control(void);			//系统运行控制任务
 
 void Car_Turn_Control(Turn_Mode Mode,float Turn_Angle,float Turn_Speed);	//转弯控制
 void Car_Arc_Turn_Control(Turn_Mode Mode,float Turn_Angle,float Turn_Speed);	//行进中弧线转弯控制，不停顿
-void Car_Stop(void);				//停止控制
 void Mileage_Arrive_Wait(float Mileage);//等待到达设定里程
 
 void Go_Up_Platform(void);				//上平台

@@ -59,6 +59,7 @@ TaskStatus_t xTaskDetails_UART_Debug;
   **/
 void User_Init(void)
 {
+	HAL_Delay(10);
 	//单片机首次下载程序时不要运行该函数，否则会产生数据错误
 	//再执行一遍flash写入操作后方可运行该函数
 	Flash_Read();			//从Flash中读取数据

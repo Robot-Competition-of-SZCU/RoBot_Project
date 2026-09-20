@@ -17,13 +17,13 @@ typedef enum{
 	M1 = 0,
 	M2,
 	M3,
-	M4
+	M4,
 }Motor_Number;
 
 //电机运行状态枚举
 typedef enum{
 	Retreat = 0,	//前进（正转）
-	Advance			//后退（反转）
+	Advance,		//后退（反转）
 }Motor_State;
 
 void Motor_Control_One(Motor_Number Motor_Select,Motor_State RUN_State,float Duty);	//电机独立控制

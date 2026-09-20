@@ -38,6 +38,8 @@ HAL_StatusTypeDef Flash_Write(void)
 	memcpy(&Flash_Save.Grayscale_ADC_Trigger_Threshold,&Grayscale_Ctrl.Grayscale_ADC_Trigger_Threshold,sizeof(Grayscale_Ctrl.Grayscale_ADC_Trigger_Threshold));
 	//舵机数据
 	memcpy(&Flash_Save.Servo_EN_State,&Servo_State,sizeof(Servo_State));
+	//速度参数
+	memcpy(&Flash_Save.Advance_A_Speed,&AD_S,sizeof(AD_S));
 	
 	HAL_StatusTypeDef status = HAL_OK;					//状态码
 	
@@ -105,4 +107,6 @@ void Flash_Read(void)
 	memcpy(&Grayscale_Ctrl.Grayscale_ADC_Trigger_Threshold,&Flash_Save.Grayscale_ADC_Trigger_Threshold,sizeof(Grayscale_Ctrl.Grayscale_ADC_Trigger_Threshold));
 	//舵机数据
 	memcpy(&Servo_State,&Flash_Save.Servo_EN_State,sizeof(Servo_State));
+	//速度参数
+	memcpy(&AD_S,&Flash_Save.Advance_A_Speed,sizeof(AD_S));
 }

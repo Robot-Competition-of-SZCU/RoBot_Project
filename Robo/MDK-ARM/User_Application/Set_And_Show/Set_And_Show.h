@@ -21,9 +21,10 @@
 		|					+-运行设置
 		|					+-运行记录
 		|
-		+-二级系统设置菜单--+-三级速度设置菜单--+-基础速度设置
-		|					|					+-加速度设置
+		+-二级系统设置菜单--+-三级速度设置菜单--+-前进速度设置
+		|					|					+-后退速度设置
 		|					|					+-转向速度设置
+		|					|					+-转向速度校准
 		|					|					+-参数存储
 		|					|						
 		|					+-三级PID设置菜单---+-轮子转速环PID
@@ -118,9 +119,10 @@ typedef enum{
 }Menu_Task_Show_L3;
 
 typedef enum{
-	Base_Speed_Set = 0,		//基础速度设置
-	Accelerated_Speed_Set,	//加速度设置
-	Turn_Speed_Set			//转向速度设置
+	Advance_Speed_Set = 0,	//前进速度设置
+	Retreat_Speed_Set,		//后退度设置
+	Turn_Speed_Set,			//转向速度设置
+	Turn_Calibration,		//转向校准
 }Menu_Speed_Set_L4;
 
 //四级PID设置菜单
@@ -182,10 +184,8 @@ void Menu_Level3_Task_UART_Debug(KEY_Tigger_State KEY2);	//三级串口调试任
 void Menu_Level3_Task_Slow_Com(KEY_Tigger_State KEY2);		//三级低速计算任务显示
 void Menu_Level3_Task_High_Com(KEY_Tigger_State KEY2);		//三级高速计算任务显示
 
-//四级基础速度设置与显示
-void Menu_Level4_Speed_Set(KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_Tigger_State Rocker_Down,KEY_Tigger_State Rocker_Right,KEY_Tigger_State Rocker_Left);			
-//四级加速度设置与显示
-void Menu_Level4_Accelerated_Speed_Set(KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_Tigger_State Rocker_Down,KEY_Tigger_State Rocker_Right,KEY_Tigger_State Rocker_Left);
+//四级速度设置与显示
+void Menu_Level4_Speed_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigger_State Rocker_UP,KEY_Tigger_State Rocker_Down,KEY_Tigger_State Rocker_Right,KEY_Tigger_State Rocker_Left,int Set_Choice);
 void Menu_Level4_Motor_Speed_PID(KEY_Tigger_State KEY2);	//四级电机转速PID显示
 void Menu_Level4_Line_Patrol_PID(KEY_Tigger_State KEY2);	//四级巡线PID显示
 
