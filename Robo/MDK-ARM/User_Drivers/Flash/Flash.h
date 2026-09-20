@@ -31,6 +31,15 @@ struct Flash{
 	float Servo_Angle_Max_Limit[8];	//舵机最大角度限位
 	float Servo_Angle_Min_Limit[8];	//舵机最小角度限位
 
+	//速度参数
+	float Advance_A_Speed;		//前进加速度
+	float Advance_D_Speed;		//前进减速度
+	float Retreat_A_Speed;		//后退加速度
+	float Retreat_D_Speed;		//后退减速度
+	float Turn_A_Speed;			//旋转加速度
+	float Turn_D_Speed;			//旋转减速度
+	float Turn_Right_Ratio;		//右转时，转速/角速比率，单位：角速度/轮速
+	float Turn_Left_Ratio;		//左转时，转速/角速比率，单位：角速度/轮速
 };
 
 HAL_StatusTypeDef Flash_Write(void);		//Flash写数据

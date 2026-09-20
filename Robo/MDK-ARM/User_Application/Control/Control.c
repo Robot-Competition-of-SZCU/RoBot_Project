@@ -12,6 +12,7 @@
 #include "stm32f4xx_hal.h"
 #include "Control.h"
 #include "cmsis_os.h"
+#include <stdlib.h>
 
 #include "OLED.h"
 #include "LED.h"
@@ -22,37 +23,21 @@
 #include "Grayscale_ADC.h"
 #include "UART.h"
 
+
+//加减速参数结构体
+struct Accelerated_Speed AD_S;
 //控制状态结构体
 struct Motor_Control Motor_Control_Parm;
 //运行状态结构体
 struct RUN RUN_Parm;
 
-/** @brief	小车前进设置
-  **/
-void Car_Advance(void)
-{
-	Motor_Control_Parm.M1 = Advance;
-	Motor_Control_Parm.M2 = Advance;
-	Motor_Control_Parm.M3 = Advance;
-	Motor_Control_Parm.M4 = Advance;
-}
-
-/** @brief	小车后退设置
-  **/
-void Car_Retreat(void)
-{
-	Motor_Control_Parm.M1 = Retreat;
-	Motor_Control_Parm.M2 = Retreat;
-	Motor_Control_Parm.M3 = Retreat;
-	Motor_Control_Parm.M4 = Retreat;
-}
 
 /** @brief	控制参数初始化
   **/
 void RUN_Parm_Init(void)
 {
 	//小车前进设置
-	Car_Advance();
+	Car_Mode(Car_Advance);
 	//转向速度设置
 	Motor_Control_Parm.Turn_Speed = 1.5f;
 	RUN_Parm.Arc_Turn_End_Threshold = 3.0f;	//弧线转弯完成判定阈值
@@ -74,10 +59,10 @@ void RUN_Speed_Control(float DT)
 		{
 			//前进模式
 			if(RUN_Parm.Angle_Control_Choice == Angle_Control_Advance)
-				Motor_Control_Parm.Base_Speed += Advance_Accelerated_Speed * DT/1000;	//进行加速
+				Motor_Control_Parm.Base_Speed += AD_S.Advance_A_Speed * DT/1000;	//进行加速
 			//后退模式
 			else
-				Motor_Control_Parm.Base_Speed += Retreat_Accelerated_Speed * DT/1000;	//进行加速
+				Motor_Control_Parm.Base_Speed += AD_S.Retreat_A_Speed * DT/1000;	//进行加速
 			//钳位，防止过冲
 			if(Motor_Control_Parm.Base_Speed > Base_Triger_Speed)
 				Motor_Control_Parm.Base_Speed = Base_Triger_Speed;
@@ -87,26 +72,72 @@ void RUN_Speed_Control(float DT)
 		{
 			//前进模式
 			if(RUN_Parm.Angle_Control_Choice == Angle_Control_Advance)
-				Motor_Control_Parm.Base_Speed -= Advance_Deceleration_Speed * DT/1000;	//进行减速
+				Motor_Control_Parm.Base_Speed -= AD_S.Advance_D_Speed * DT/1000;	//进行减速
 			else
-				Motor_Control_Parm.Base_Speed -= Retreat_Deceleration_Speed * DT/1000;	//进行减速
+				Motor_Control_Parm.Base_Speed -= AD_S.Retreat_D_Speed * DT/1000;	//进行减速
 			//钳位，防止过冲
 			if(Motor_Control_Parm.Base_Speed < Base_Triger_Speed)
 				Motor_Control_Parm.Base_Speed = Base_Triger_Speed;
 		}
     }
-	//非运行状态
-    else
-    {
-		//基础速度始终为0
-        Motor_Control_Parm.Base_Speed = 0;
-    }
+	// //非运行状态
+    // else
+    // {
+	// 	//基础速度始终为0
+    //     Motor_Control_Parm.Base_Speed = 0;
+    // }
 	if(RUN_Parm.RUN_Control == 0)
 	{
 		RUN_Parm.RUN_State = 0;
 		//直接控制模式
 		//RUN_Parm.Control_State = Direct_Control;
 	}	
+}
+
+/** @brief	小车状态控制
+  * @param	Control_Mode 	状态枚举
+  **/
+void Car_Mode(Car_Control_Mode Control_Mode)
+{
+	switch(Control_Mode)
+	{
+		case Car_Advance:
+			Motor_Control_Parm.M1 = Advance;
+			Motor_Control_Parm.M2 = Advance;
+			Motor_Control_Parm.M3 = Advance;
+			Motor_Control_Parm.M4 = Advance;
+			break;
+		case Car_Retreat:
+			Motor_Control_Parm.M1 = Retreat;
+			Motor_Control_Parm.M2 = Retreat;
+			Motor_Control_Parm.M3 = Retreat;
+			Motor_Control_Parm.M4 = Retreat;
+			break;
+		case Car_Turn_Right:
+			Motor_Control_Parm.M1 = Retreat;
+			Motor_Control_Parm.M2 = Retreat;
+			Motor_Control_Parm.M3 = Advance;
+			Motor_Control_Parm.M4 = Advance;
+			break;
+		case Car_Turn_Left:
+			Motor_Control_Parm.M1 = Advance;
+			Motor_Control_Parm.M2 = Advance;
+			Motor_Control_Parm.M3 = Retreat;
+			Motor_Control_Parm.M4 = Retreat;
+			break;
+		case Car_Stop:
+		default:
+			//关闭运行基速
+			Motor_Control_Parm.Base_Triger_Speed = 0;
+			Motor_Control_Parm.Base_Speed = 0;
+
+			//关闭电机输出
+			Motor_Control_One(M1,Motor_Control_Parm.M1,0);
+			Motor_Control_One(M2,Motor_Control_Parm.M2,0);
+			Motor_Control_One(M3,Motor_Control_Parm.M3,0);
+			Motor_Control_One(M4,Motor_Control_Parm.M4,0);
+			break;
+	}
 }
 
 /** @brief	巡线运行控制
@@ -117,7 +148,7 @@ void RUN_Speed_Control(float DT)
   **/
 void Scan_Line_RUN_Control(float RUN_Speed,float Stop_Speed,float Mileage,RUN_END_Deceleration_Mode End_Mode)
 {
-	Car_Advance();											//直行模式
+	Car_Mode(Car_Advance);											//直行模式
 
 	RUN_Parm.Control_State	= ScanLine_Control;				//巡线控制
 	Motor_Control_Parm.Base_Triger_Speed = RUN_Speed;		//速度设置，运行速度
@@ -138,7 +169,7 @@ void Scan_Line_RUN_Control(float RUN_Speed,float Stop_Speed,float Mileage,RUN_EN
 				//再乘轮周长换算为cm，并乘校准系数与里程计刻度对齐
 				float Decel_Mileage = (Motor_Control_Parm.Base_Speed*Motor_Control_Parm.Base_Speed
 									   - Stop_Speed*Stop_Speed)
-									  / (2*Advance_Deceleration_Speed)
+									  / (2*AD_S.Advance_D_Speed)
 									  * Length_Of_Each_Circle * (Set_Mileage_100_Actual / 100.0f);
 
 				//到达减速起点，开始减速，速度斜坡由RUN_Speed_Control周期任务自动执行
@@ -177,12 +208,12 @@ void Angle_Following_RUN_Control(Angle_Control_Mode Mode,float RUN_Speed,float S
 {
 	if(Mode == Angle_Control_Advance)
 	{
-		Car_Advance();		//前进模式
+		Car_Mode(Car_Advance);		//前进模式
 		RUN_Parm.Angle_Control_Choice = Angle_Control_Advance;		//前进模式
 	}
 	else
 	{
-		Car_Retreat();		//后退模式
+		Car_Mode(Car_Retreat);		//后退模式
 		RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;		//后退模式
 	}
 
@@ -205,7 +236,7 @@ void Angle_Following_RUN_Control(Angle_Control_Mode Mode,float RUN_Speed,float S
 				//再乘轮周长换算为cm，并乘校准系数与里程计刻度对齐
 				float Decel_Mileage = (Motor_Control_Parm.Base_Speed*Motor_Control_Parm.Base_Speed
 									   - Stop_Speed*Stop_Speed)
-									  / (2*Advance_Deceleration_Speed)
+									  / (2*AD_S.Advance_D_Speed)
 									  * Length_Of_Each_Circle * (Set_Mileage_100_Actual / 100.0f);
 
 				//到达减速起点，开始减速，速度斜坡由RUN_Speed_Control周期任务自动执行
@@ -244,6 +275,98 @@ void Mileage_Int_Test(void)
 	Motor_Control_Parm.Base_Speed = 0;											//达到设定后直接停止
 }
 
+/** @brief	小车旋转速度校准
+  * @param	Mode	校准模式
+  * @retval	校准是否完成	
+  * @note	通过此函数可获取小车轮速对对应小车整体旋转角速度
+  * @note	该函数调用一次即进行一次数据采样
+  **/
+void Turn_Speed_Calibration(void)
+{
+	float Speed1_Angle_Int = 0,Speed2_Angle_Int = 0;
+	float Speed3_Angle_Int = 0,Speed4_Angle_Int = 0;
+
+	//抬起前瞻
+	Servo_State.Servo_Angle[Servo2] = 90;
+
+	//左转控制
+	Car_Mode(Car_Turn_Left);
+
+	//执行旋转
+	//直接控制
+	RUN_Parm.Control_State = Direct_Control;
+	Motor_Control_Parm.Base_Speed = 1;
+
+	//等待旋转稳定
+	osDelay(1000);
+
+	//进行100次采样
+	for(char i=0;i<100;i++)
+	{
+		Speed1_Angle_Int += IMU_Data.IMU_Gyro_Z;
+		osDelay(10);
+	}
+	Speed1_Angle_Int /= 100.0f;
+
+	//速度2
+	Motor_Control_Parm.Base_Speed = 3;
+	//等待旋转稳定
+	osDelay(1000);
+
+	//进行100次采样
+	for(char i=0;i<100;i++)
+	{
+		Speed2_Angle_Int += IMU_Data.IMU_Gyro_Z;
+		osDelay(10);
+	}
+	Speed2_Angle_Int /= 100.0f;
+
+	//停止
+	Car_Mode(Car_Stop);
+
+	//等待旋转稳定
+	osDelay(1000);
+
+	//右转控制
+	Car_Mode(Car_Turn_Right);
+
+	//速度3
+	Motor_Control_Parm.Base_Speed = 1;
+	//等待旋转稳定
+	osDelay(1000);
+
+	//进行100次采样
+	for(char i=0;i<100;i++)
+	{
+		Speed3_Angle_Int += IMU_Data.IMU_Gyro_Z;
+		osDelay(10);
+	}
+	Speed3_Angle_Int /= 100.0f;
+
+	//速度4
+	Motor_Control_Parm.Base_Speed = 3;
+	//等待旋转稳定
+	osDelay(1000);
+
+	//进行100次采样
+	for(char i=0;i<100;i++)
+	{
+		Speed4_Angle_Int += IMU_Data.IMU_Gyro_Z;
+		osDelay(10);
+	}
+	Speed4_Angle_Int /= 100.0f;
+
+	//停止
+	Car_Mode(Car_Stop);
+
+	//计算转向时，轮速对应角速度关系
+	AD_S.Turn_Left_Ratio  = (Speed1_Angle_Int + Speed2_Angle_Int) / 4.0f;
+	AD_S.Turn_Right_Ratio = (Speed3_Angle_Int + Speed4_Angle_Int) / 4.0f;
+
+	//降下前瞻
+	Servo_State.Servo_Angle[Servo2] = 35;
+}
+
 /** @brief	角度差回绕归一化
   * @note	将角度差归一化至 -180 ~ +180，始终取最短路径
   **/
@@ -267,7 +390,7 @@ void Car_Turn_Control(Turn_Mode Mode,float Turn_Angle,float Turn_Speed)
 	Motor_Control_Parm.Turn_Speed = Turn_Speed;
 	RUN_Parm.Control_State	= Turn_Control;			//转弯控制
 
-	Car_Stop();									//停止
+	Car_Mode(Car_Stop);									//停止
 
 	//抬起前瞻
 	Servo_State.Servo_Angle[Servo2] = 60;
@@ -282,17 +405,11 @@ void Car_Turn_Control(Turn_Mode Mode,float Turn_Angle,float Turn_Speed)
 	//设置电机转向
 	if(Mode == Turn_Left)
 	{
-		Motor_Control_Parm.M1 = Advance;
-		Motor_Control_Parm.M2 = Advance;
-		Motor_Control_Parm.M3 = Retreat;
-		Motor_Control_Parm.M4 = Retreat;
+		Car_Mode(Car_Turn_Left);
 	}
 	else if(Mode == Turn_Right)
 	{
-		Motor_Control_Parm.M1 = Retreat;
-		Motor_Control_Parm.M2 = Retreat;
-		Motor_Control_Parm.M3 = Advance;
-		Motor_Control_Parm.M4 = Advance;
+		Car_Mode(Car_Turn_Right);
 	}
 	else
 		return;
@@ -315,21 +432,24 @@ void Car_Turn_Control(Turn_Mode Mode,float Turn_Angle,float Turn_Speed)
 
 		//计算剩余角度与当前速度减速到0所需角度
 		float Remain_Angle = Turn_Angle - Turned_Angle;
-		float Decel_Angle = Turn_Angle_Speed_Coefficient
-							* Now_Turn_Speed * Now_Turn_Speed
-							/ (2 * Turn_Deceleration_Speed);
+		float Decel_Angle;
+		if(Mode == Turn_Left)
+			Decel_Angle = (AD_S.Turn_Left_Ratio + 50) * Now_Turn_Speed * Now_Turn_Speed / (2 * AD_S.Turn_D_Speed);
+		else
+			Decel_Angle = (abs(AD_S.Turn_Right_Ratio) + 50) * Now_Turn_Speed * Now_Turn_Speed / (2 * AD_S.Turn_D_Speed);
+
 		//目标速度：剩余角度不足以减速到0时为0，否则为设定转向速度
 		float Target_Speed = (Remain_Angle <= Decel_Angle) ? 0 : Turn_Speed;
 
 		//速度斜坡调节
 		if(Now_Turn_Speed < Target_Speed)
 		{
-			Now_Turn_Speed += Turn_Accelerated_Speed * 0.001f;	//进行加速，调节周期1ms
+			Now_Turn_Speed += AD_S.Turn_A_Speed * 0.001f;	//进行加速，调节周期1ms
 			if(Now_Turn_Speed > Target_Speed) Now_Turn_Speed = Target_Speed;	//钳位，防止过冲
 		}
 		else if(Now_Turn_Speed > Target_Speed)
 		{
-			Now_Turn_Speed -= Turn_Deceleration_Speed * 0.001f;	//进行减速，调节周期1ms
+			Now_Turn_Speed -= AD_S.Turn_D_Speed * 0.001f;	//进行减速，调节周期1ms
 			if(Now_Turn_Speed < Target_Speed) Now_Turn_Speed = Target_Speed;	//钳位，防止过冲
 		}
 
@@ -351,7 +471,7 @@ void Car_Turn_Control(Turn_Mode Mode,float Turn_Angle,float Turn_Speed)
 	Servo_State.Servo_Angle[Servo2] = 35;
 
 	//调整为直行
-	Car_Advance();
+	Car_Mode(Car_Advance);
 }
 
 /** @brief	行进中弧线转弯
@@ -399,22 +519,7 @@ void Car_Arc_Turn_Control(Turn_Mode Mode,float Turn_Angle,float Turn_Speed)
 	//降下前瞻
 	Servo_State.Servo_Angle[Servo2] = 35;
 
-	Car_Stop();	//停止
-}
-
-/** @brief	停止控制
-  **/
-void Car_Stop(void)
-{
-	//关闭运行基速
-	Motor_Control_Parm.Base_Triger_Speed = 0;
-	Motor_Control_Parm.Base_Speed = 0;
-
-	//关闭电机输出
-	Motor_Control_One(M1,Motor_Control_Parm.M1,0);
-	Motor_Control_One(M2,Motor_Control_Parm.M2,0);
-	Motor_Control_One(M3,Motor_Control_Parm.M3,0);
-	Motor_Control_One(M4,Motor_Control_Parm.M4,0);
+	Car_Mode(Car_Stop);	//停止
 }
 
 /** @brief	等待到达设定里程
@@ -582,6 +687,11 @@ void RUN_System_Control(void)
     if(RUN_Parm.RUN_Control)
     {
 		RUN_Parm.RUN_State = 1;
+
+		Car_Turn_Control(Turn_Left,180,5);
+
+		RUN_Parm.RUN_Control = 0;
+		return;
 
 		// Car_Turn_Control(Turn_Right,180,5);
 
@@ -854,7 +964,7 @@ void RUN_System_Control(void)
 
 // 	osDelay(100);
 
-// 	Car_Retreat();									//小车后退控制
+// 	Car_Mode(Car_Retreat);									//小车后退控制
 // 	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;	//后退控制模式
 // 	Motor_Control_Parm.Base_Triger_Speed = 1.2;		//速度设置
 // 	Mileage_Arrive_Wait(8);							//里程等待
@@ -879,7 +989,7 @@ void RUN_System_Control(void)
 // 	//等待微动开关触发
 // 	while(!RUN_Parm.Microswitch_State) osDelay(1);
 
-// 	Car_Retreat();									//小车后退控制
+// 	Car_Mode(Car_Retreat);									//小车后退控制
 // 	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;		//后退模式
 // 	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
 // 	Motor_Control_Parm.Base_Triger_Speed = 1.2;		//速度设置
@@ -888,7 +998,7 @@ void RUN_System_Control(void)
 // 	Stop_Control();
 
 // 	RUN_Parm.Angle_Control_Choice = Angle_Control_Advance;		//前进模式
-// 	Car_Advance();									//小车前进控制
+// 	Car_Mode(Car_Advance);									//小车前进控制
 // }
 
 // /** @brief	下平台
@@ -1040,7 +1150,7 @@ void RUN_System_Control(void)
 //   **/
 // void Scenic_Spot1_to_Platform3(void)
 // {
-// 	Car_Retreat();									//小车后退控制
+// 	Car_Mode(Car_Retreat);									//小车后退控制
 // 	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;		//后退模式
 // 	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
 // 	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
@@ -1053,7 +1163,7 @@ void RUN_System_Control(void)
 // 	Stop_Control();									//停止
 // 	osDelay(150);
 
-// 	Car_Advance();									//小车前进控制
+// 	Car_Mode(Car_Advance);									//小车前进控制
 // 	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
 // 	Motor_Control_Parm.Base_Triger_Speed = 2.5;		//速度设置
 // 	// Mileage_Arrive_Wait(10);							//里程等待
@@ -1113,7 +1223,7 @@ void RUN_System_Control(void)
 //   **/
 // void Scenic_Spot2_to_Platform4(void)
 // {
-// 	Car_Retreat();									//小车后退控制
+// 	Car_Mode(Car_Retreat);									//小车后退控制
 // 	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;		//后退模式
 // 	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
 // 	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
@@ -1127,7 +1237,7 @@ void RUN_System_Control(void)
 // 	Stop_Control();									//停止
 // 	osDelay(150);
 
-// 	Car_Advance();									//小车前进控制
+// 	Car_Mode(Car_Advance);									//小车前进控制
 // 	RUN_Parm.Angle_Control_Choice = Angle_Control_Advance;		//前进模式
 // 	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
 // 	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
@@ -1135,7 +1245,7 @@ void RUN_System_Control(void)
 
 // 	Car_Arc_Turn_Control(Turn_Right,30);			//行进中右转
 
-// 	Car_Advance();									//小车前进控制
+// 	Car_Mode(Car_Advance);									//小车前进控制
 // 	RUN_Parm.Angle_Control_Choice = Angle_Control_Advance;		//前进模式
 // 	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
 // 	Motor_Control_Parm.Base_Triger_Speed = 3;		//速度设置
@@ -1204,7 +1314,7 @@ void RUN_System_Control(void)
 //   **/
 // void Platform1_to_Platform2_on_Bridge(void)
 // {
-// 	Car_Advance();									//小车前进控制
+// 	Car_Mode(Car_Advance);									//小车前进控制
 
 // 	Go_Down_Platform();								//下平台
 
@@ -1272,7 +1382,7 @@ void RUN_System_Control(void)
 //   **/
 // void Platform1_to_Platform2_no_Bridge(void)
 // {
-// 	Car_Advance();									//小车前进控制
+// 	Car_Mode(Car_Advance);									//小车前进控制
 
 // 	Go_Down_Platform();								//下平台
 
@@ -1738,7 +1848,7 @@ void RUN_System_Control(void)
 //   **/
 // void Scenic_Spot4_to_Scenic_Spot5(void)
 // {
-// 	Car_Retreat();									//小车后退控制
+// 	Car_Mode(Car_Retreat);									//小车后退控制
 // 	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
 // 	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;		//后退模式
 // 	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
@@ -1748,7 +1858,7 @@ void RUN_System_Control(void)
 // 	Stop_Control();									//停止
 // 	osDelay(100);									//等待车身稳定
 
-// 	Car_Advance();									//小车前进控制
+// 	Car_Mode(Car_Advance);									//小车前进控制
 // 	RUN_Parm.Angle_Control_Choice = Angle_Control_Advance;		//前进模式
 // 	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
 // 	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
@@ -1801,7 +1911,7 @@ void RUN_System_Control(void)
 //   **/
 // void Scenic_Spot5_to_Test_D(void)
 // {
-// 	Car_Retreat();									//小车后退控制
+// 	Car_Mode(Car_Retreat);									//小车后退控制
 // 	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
 // 	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;		//后退模式
 // 	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
@@ -1811,7 +1921,7 @@ void RUN_System_Control(void)
 // 	Stop_Control();									//停止
 // 	osDelay(100);									//等待车身稳定
 
-// 	Car_Advance();									//小车前进控制
+// 	Car_Mode(Car_Advance);									//小车前进控制
 // 	RUN_Parm.Angle_Control_Choice = Angle_Control_Advance;		//前进模式
 // 	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
 // 	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
@@ -1962,7 +2072,7 @@ void RUN_System_Control(void)
 
 // 	osDelay(100);
 
-// 	Car_Retreat();									//小车后退控制
+// 	Car_Mode(Car_Retreat);									//小车后退控制
 // 	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;	//后退控制模式
 // 	Motor_Control_Parm.Base_Triger_Speed = 1.2;		//速度设置
 // 	Mileage_Arrive_Wait(8);							//里程等待
@@ -2059,7 +2169,7 @@ void RUN_System_Control(void)
 
 // 	osDelay(100);
 
-// 	Car_Retreat();									//小车后退控制
+// 	Car_Mode(Car_Retreat);									//小车后退控制
 // 	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;	//后退控制模式
 // 	Motor_Control_Parm.Base_Triger_Speed = 1.2;		//速度设置
 // 	Mileage_Arrive_Wait(10);							//里程等待
@@ -2211,7 +2321,7 @@ void RUN_System_Control(void)
 //   **/
 // void Scenic_Spot3_to_Test_C(void)
 // {
-// 	Car_Retreat();									//小车后退控制
+// 	Car_Mode(Car_Retreat);									//小车后退控制
 // 	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
 // 	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;		//后退模式
 // 	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
@@ -2221,7 +2331,7 @@ void RUN_System_Control(void)
 // 	Stop_Control();									//停止
 // 	osDelay(100);									//等待车身稳定
 
-// 	Car_Advance();									//小车前进控制
+// 	Car_Mode(Car_Advance);									//小车前进控制
 // 	RUN_Parm.Angle_Control_Choice = Angle_Control_Advance;		//前进模式
 // 	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
 // 	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
@@ -2374,7 +2484,7 @@ void RUN_System_Control(void)
 //   **/
 // void Scenic_Spot3_to_Platform8_Change(void)
 // {
-// 	Car_Retreat();									//小车后退控制
+// 	Car_Mode(Car_Retreat);									//小车后退控制
 // 	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
 // 	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;		//后退模式
 // 	RUN_Parm.Control_State	= Angle_Control;		//角度跟随控制
@@ -2384,7 +2494,7 @@ void RUN_System_Control(void)
 // 	Stop_Control();									//停止
 // 	osDelay(100);									//等待车身稳定
 
-// 	Car_Advance();									//小车前进控制
+// 	Car_Mode(Car_Advance);									//小车前进控制
 // 	RUN_Parm.Angle_Control_Choice = Angle_Control_Advance;		//前进模式
 // 	RUN_Parm.Control_State	= ScanLine_Control;		//巡线控制
 // 	Motor_Control_Parm.Base_Triger_Speed = 1.5;		//速度设置
@@ -2462,7 +2572,7 @@ void RUN_System_Control(void)
 
 // 	osDelay(100);
 
-// 	Car_Retreat();											//小车后退控制
+// 	Car_Mode(Car_Retreat);											//小车后退控制
 // 	RUN_Parm.Angle_Control_Choice = Angle_Control_Retreat;	//后退控制模式
 // 	Motor_Control_Parm.Base_Triger_Speed = 1.2;				//速度设置
 // 	Mileage_Arrive_Wait(8);									//里程等待
