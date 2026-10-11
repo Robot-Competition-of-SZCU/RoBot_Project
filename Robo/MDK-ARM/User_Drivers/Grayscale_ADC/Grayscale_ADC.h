@@ -18,6 +18,7 @@
 #define Grayscale_Cover_Line_Num	3			//线宽所能覆盖的传感器最大数量
 #define Grayscale_Weight_Bias		1			//从中心点开始，每个传感器的偏移权重
 #define Grayscale_Data_Stream_Type  0			//灰度数据流类型，0为模拟量，1为数字量
+#define Grayscale_Map_Filter_Alpha	1		//灰度坐标映射滤波系数
 /**↑↑用户可修改参数↑↑**/
 
 //灰度传感器ADC数据缓存区
@@ -79,6 +80,7 @@ struct Grayscale_OutPut{
 	char Number_Of_Discontinuous_Points;		//不连续触发段数量统计
 	
 	float Grayscale_Map;						//灰度传感器ADC映射一维坐标值
+	float Grayscale_Map_Filter;					//灰度传感器ADC映射一维坐标值滤波值
 
 	Intersection Now_Intersection;				//当前路口状态
 };
@@ -101,5 +103,7 @@ void Scan_Line_Segment_Compute(void);	//巡线不连续触发段统计计算
 void Grayscale_ADC_Map_Compute(void);	//灰度传感器ADC映射计算
 char Segment_Track_Find(char Number_Of_Segments, char *Segment_Start, char *Segment_End);	//寻找最靠近阵列中心的连续触发段
 void Intersection_Recognition(void);	//路口识别
+
+void Grayscale_Out_Map_Filter(void);	//灰度坐标映射滤波
 
 #endif

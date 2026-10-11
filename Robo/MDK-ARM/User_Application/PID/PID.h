@@ -67,6 +67,9 @@ typedef struct
 //巡线控制PID结构体
 extern PID_Positional Line_Patrol_PID;	
 
+//巡线Z轴陀螺仪阻尼系数
+extern float Line_Patrol_Gyro_Damping;
+
 //角度跟随控制PID
 extern PID_Positional	Angle_Patrol_PID;
 

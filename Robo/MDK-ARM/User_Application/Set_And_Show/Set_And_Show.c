@@ -690,13 +690,13 @@ void Menu_RUN_View(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigger_State 
 	}
 
 	//显示
-	OLED_Printf(0,0 - Menu_Y_Shift*16,OLED_8X16,"直立景点%d个",RUN_Parm.Word_Test_Num);
+	OLED_Printf(0,0 - Menu_Y_Shift*16,OLED_8X16,"直立景点%d个",Visual_Identity.Word_Test_Num);
 	OLED_Printf(0,16 - Menu_Y_Shift*16,OLED_8X16,"1-5号平台%d个",5 * RUN_Parm.Round);
 	OLED_Printf(0,32 - Menu_Y_Shift*16,OLED_8X16,"6号平台0个");
 	OLED_Printf(0,48 - Menu_Y_Shift*16,OLED_8X16,"7号平台%d个",RUN_Parm.Round);
 	OLED_Printf(0,64 - Menu_Y_Shift*16,OLED_8X16,"8号平台%d个",RUN_Parm.Round);
 	OLED_Printf(0,80 - Menu_Y_Shift*16,OLED_8X16,"回家%d次",RUN_Parm.Round);
-	OLED_Printf(0,96 - Menu_Y_Shift*16,OLED_8X16,"总分%4d分",((RUN_Parm.Word_Test_Num * 11) + 390) * 1.2 - 30);
+	OLED_Printf(0,96 - Menu_Y_Shift*16,OLED_8X16,"总分%4d分",((Visual_Identity.Word_Test_Num * 11) + 390) * 1.2 - 30);
 
 	//控制指针指向的参数高亮显示
 	switch(Menu_Pointer)
@@ -733,10 +733,10 @@ void Menu_Level3_Speed_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigge
 	{	//选择下翻
 		Menu_Pointer++;
 		//超过长度，回到顶端
-		if(Menu_Pointer == 5) Menu_Pointer = 0;	
+		if(Menu_Pointer >= 6) Menu_Pointer = 0;	
 		//菜单偏移
 		if(Menu_Pointer >= 3) Menu_Y_Shift++;		//偏移
-		if(Menu_Y_Shift >= 1) Menu_Y_Shift = 1;		//限位
+		if(Menu_Y_Shift >= 2) Menu_Y_Shift = 2;		//限位
 		if(Menu_Pointer == 0) Menu_Y_Shift = 0;		//复位	
 	}
 	//摇杆上按
@@ -744,11 +744,11 @@ void Menu_Level3_Speed_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigge
 	{	//选择上翻
 		Menu_Pointer--;
 		//超过长度，回到底端
-		if(Menu_Pointer < 0) Menu_Pointer = 4;
+		if(Menu_Pointer < 0) Menu_Pointer = 5;
 		//菜单偏移
-		if(Menu_Pointer <= 1) Menu_Y_Shift --;		//偏移	
+		if(Menu_Pointer <= 2) Menu_Y_Shift --;		//偏移	
 		if(Menu_Y_Shift <= 0) Menu_Y_Shift = 0;		//限位
-		if(Menu_Pointer == 4) Menu_Y_Shift = 1;		//复位
+		if(Menu_Pointer == 5) Menu_Y_Shift = 2;		//复位
 	}
 	//按键2按下
 	if(KEY2)
@@ -758,7 +758,7 @@ void Menu_Level3_Speed_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigge
 	//按键1按下，进入所选菜单
 	if(KEY1)
 	{	
-		if(Menu_Pointer == 4)
+		if(Menu_Pointer == 5)
 		{
 			//flash写数据
 			OLED_Show_And_Set_Write_Flash();
@@ -774,8 +774,9 @@ void Menu_Level3_Speed_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigge
 	OLED_ShowString(0,0 - Menu_Y_Shift*16,"前进速度",OLED_8X16);
 	OLED_ShowString(0,16 - Menu_Y_Shift*16,"后退速度",OLED_8X16);
 	OLED_ShowString(0,32 - Menu_Y_Shift*16,"旋转速度",OLED_8X16);
-	OLED_ShowString(0,48 - Menu_Y_Shift*16,"旋转速度校准",OLED_8X16);
-	OLED_ShowString(0,64 - Menu_Y_Shift*16,"是否存储参数→",OLED_8X16);
+	OLED_ShowString(0,48 - Menu_Y_Shift*16,"行进里程测试",OLED_8X16);
+	OLED_ShowString(0,64 - Menu_Y_Shift*16,"旋转速度校准",OLED_8X16);
+	OLED_ShowString(0,80 - Menu_Y_Shift*16,"是否存储参数→",OLED_8X16);
 
 	//控制指针指向的参数高亮显示
 	switch(Menu_Pointer)
@@ -788,7 +789,9 @@ void Menu_Level3_Speed_Set(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigge
 				break;
 		case 3:	OLED_ReverseArea(0,48 - Menu_Y_Shift*16,96,16);
 				break;
-		case 4:	OLED_ReverseArea(0,64 - Menu_Y_Shift*16,112,16);
+		case 4:	OLED_ReverseArea(0,64 - Menu_Y_Shift*16,96,16);
+				break;
+		case 5:	OLED_ReverseArea(0,80 - Menu_Y_Shift*16,112,16);
 				break;
 	}
 }

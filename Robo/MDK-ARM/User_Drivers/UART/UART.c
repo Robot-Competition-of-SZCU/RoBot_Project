@@ -112,7 +112,7 @@ void Visual_Identity_Data_Analysis(Visual_Identity_Packet* Packet)
 	static char Test_Buffer[3] = {0,1,2},Test_Buffer_Pointer = 0;
 
 	//文字识别状态
-	if(RUN_Parm.Visual_Identity_Word_Flag == 1)
+	if(Visual_Identity.Word_Flag == 1)
 	{
 		//存储一次当前数据
 		Test_Buffer[Test_Buffer_Pointer] = Packet->Data[6];
@@ -123,17 +123,17 @@ void Visual_Identity_Data_Analysis(Visual_Identity_Packet* Packet)
 		if(Test_Buffer[0] == Test_Buffer[1] && Test_Buffer[1] == Test_Buffer[2])
 		{
 			//传递数据
-			RUN_Parm.Word_Test = Test_Buffer[0];
+			Visual_Identity.Word_Test = Test_Buffer[0];
 			//复位缓存区
 			Test_Buffer[0] = 0;
 			Test_Buffer[1] = 1;
 			Test_Buffer[2] = 2;
 			//识别结束
-			RUN_Parm.Visual_Identity_Word_Flag = 0;
+			Visual_Identity.Word_Flag = 0;
 		}
 	}
 	//颜色识别状态
-	else if(RUN_Parm.Visual_Identity_Colour_Flag == 1)
+	else if(Visual_Identity.Colour_Flag == 1)
 	{
 		//存储一次当前数据
 		Test_Buffer[Test_Buffer_Pointer] = Packet->Data[6];
@@ -144,13 +144,13 @@ void Visual_Identity_Data_Analysis(Visual_Identity_Packet* Packet)
 		if(Test_Buffer[0] == Test_Buffer[1] && Test_Buffer[1] == Test_Buffer[2])
 		{
 			//传递数据
-			RUN_Parm.Colour_Test = Test_Buffer[0];
+			Visual_Identity.Colour_Test = Test_Buffer[0];
 			//复位缓存区
 			Test_Buffer[0] = 0;
 			Test_Buffer[1] = 1;
 			Test_Buffer[2] = 2;
 			//识别结束
-			RUN_Parm.Visual_Identity_Colour_Flag = 0;
+			Visual_Identity.Colour_Flag = 0;
 		}
 	}
 }
