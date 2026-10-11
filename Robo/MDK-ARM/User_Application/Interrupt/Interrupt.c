@@ -17,6 +17,12 @@
 #include "usart.h"
 #include "UART.h"
 
+/*
+为提高程序运行效率，TIM4_CH4输入捕获中断不使用中断回调函数在此文件内进行调用，
+以确保TIM3_CH4通道上涌入高速脉冲信号时对系统影响最小化，
+该中断程序在中断函数内直接操作，具体详见"stm32f4xx.it.c"，中断函数TIM4_IRQHandler
+*/
+
 /** @brief	GPIO外部输入中断
   **/
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)

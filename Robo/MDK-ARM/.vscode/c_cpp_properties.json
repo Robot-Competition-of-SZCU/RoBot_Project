@@ -26,6 +26,8 @@
                 "e:\\STM32Cube MX\\RoBot_Project\\Robo\\MDK-ARM\\User_Application\\PID",
                 "e:\\STM32Cube MX\\RoBot_Project\\Robo\\MDK-ARM\\User_Application\\Set_And_Show",
                 "e:\\STM32Cube MX\\RoBot_Project\\Robo\\MDK-ARM\\User_Application\\IMU",
+                "e:\\STM32Cube MX\\RoBot_Project\\Robo\\MDK-ARM\\User_Application\\IO_Put",
+                "e:\\STM32Cube MX\\RoBot_Project\\Robo\\MDK-ARM\\User_Application\\RUN_Process",
                 "D:\\app\\Keil_v5\\ARM\\ARMCC\\include",
                 "D:\\app\\Keil_v5\\ARM\\ARMCC\\include\\rw",
                 "e:\\STM32Cube MX\\RoBot_Project\\Robo\\MDK-ARM",

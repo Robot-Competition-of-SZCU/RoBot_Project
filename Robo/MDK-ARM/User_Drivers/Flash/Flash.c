@@ -98,6 +98,11 @@ void Flash_Read(void)
 {
 	//从起始地址拷贝sizeof(Flash_Save)个字节到Flash_Save结构体中
     memcpy(&Flash_Save,(const void*)DATA_SECTOR_ADDR, sizeof(Flash_Save));
+
+	//若首个数据为0XFF，则判定为Flash内无有效数据
+	if(Flash_Save.Grayscale_ADC_Max[0] == 0XFFFF)
+		//不进行数据搬运
+		return;
 	
 	//数据拷贝出Flash_Save，以使用
 	//灰度传感器数据

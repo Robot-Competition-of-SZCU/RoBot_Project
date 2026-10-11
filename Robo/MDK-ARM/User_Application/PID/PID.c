@@ -32,6 +32,9 @@ uint16_t Encoder_Lost_Times[4] = {0,0,0,0};
 //巡线控制PID结构体
 PID_Positional Line_Patrol_PID;	
 
+//巡线Z轴陀螺仪阻尼系数，用于抑制高速巡线震荡，单位：1/(度/s)
+float Line_Patrol_Gyro_Damping;
+
 //角度跟随控制PID
 PID_Positional	Angle_Patrol_PID;
 
@@ -73,20 +76,21 @@ void PID_Parameter_Init(void)
 	PID_Motor4.DT		= 5;		//调控周期，单位ms
 
 	//巡线PID参数设置
-	Line_Patrol_PID.Kp = 0.08f;			//比例系数
+	Line_Patrol_PID.Kp = 0.12f;			//比例系数
 	// Line_Patrol_PID.Ki = 0.0f;		//积分系数
-	// Line_Patrol_PID.Kd = 0.0f;		//微分系数
+	//Line_Patrol_PID.Kd = 3.0f;			//微分系数
 	Line_Patrol_PID.ErrorInt_Min = -1; 	//积分最小限幅
 	Line_Patrol_PID.ErrorInt_Max = +1;	//积分最大限幅
 	Line_Patrol_PID.Out_Min = -1;		//输出最小限幅
 	Line_Patrol_PID.Out_Max = 1;		//输出最大限幅
+	Line_Patrol_Gyro_Damping = 0.001f;	//陀螺仪阻尼系数，震荡严重可增大
 
 	//角度跟随PID参数设置，位置式PID
 	Angle_Patrol_PID.Kp 		= 0.025f;	//比例系数
 	Angle_Patrol_PID.Ki 		= 0.0f;		//积分系数
 	Angle_Patrol_PID.Kd 		= 0;		//微分系数
-	Line_Patrol_PID.ErrorInt_Min = -0.5f; 	//积分最小限幅
-	Line_Patrol_PID.ErrorInt_Max = +0.5f;	//积分最大限幅
+	Angle_Patrol_PID.ErrorInt_Min = -0.5f; 	//积分最小限幅
+	Angle_Patrol_PID.ErrorInt_Max = +0.5f;	//积分最大限幅
 	Angle_Patrol_PID.Out_Min 	= -1;		//输出最小限幅
 	Angle_Patrol_PID.Out_Max 	= 1;		//输出最大限幅
 
@@ -198,8 +202,17 @@ void Scan_Line_Control(void)
 {
 	//计算差速比
 	Line_Patrol_PID.Error_Last = Line_Patrol_PID.Error_Now;		//上次误差更新
-	Line_Patrol_PID.Error_Now = Grayscale_Out.Grayscale_Map;		//本次误差更新
+	Line_Patrol_PID.Error_Now = Grayscale_Out.Grayscale_Map_Filter;		//本次误差更新
 	PID_Positional_Compute(&Line_Patrol_PID);					//PID计算
+
+	//当基础速度高于5时，启用角度抑制
+	if(Motor_Control_Parm.Base_Speed >= 4.9)
+	{
+		//差速比叠加Z轴陀螺仪阻尼，抑制高速震荡
+		Line_Patrol_PID.Out += Line_Patrol_Gyro_Damping * IMU_Data.IMU_Gyro_Z;
+		if(Line_Patrol_PID.Out > 1)	Line_Patrol_PID.Out = 1;		//差速比限幅
+		if(Line_Patrol_PID.Out < -1)Line_Patrol_PID.Out = -1;
+	}
 	
 	//电机速度混合控制
 	if(Motor_Control_Parm.Base_Speed)
@@ -239,8 +252,10 @@ void Arc_Turn_Control_Compute(void)
 	while(Angle > 180) Angle -= 360;
 	while(Angle < -180) Angle += 360;
 
-	//转弯完成，无缝切换回巡线
-	if(Angle > -RUN_Parm.Arc_Turn_End_Threshold && Angle < RUN_Parm.Arc_Turn_End_Threshold)
+	//转弯完成判定：未进入减速时到达阈值即完成，进入减速后需等待完全停车，避免速度突变
+	char Brake_Triggered = (Motor_Control_Parm.Base_Triger_Speed <= 0.01f);
+	if((!Brake_Triggered && Angle > -RUN_Parm.Arc_Turn_End_Threshold && Angle < RUN_Parm.Arc_Turn_End_Threshold)
+	   || (Brake_Triggered && Motor_Control_Parm.Base_Speed <= 0.05f))
 	{
 		//恢复基础目标速度
 		Motor_Control_Parm.Base_Triger_Speed = RUN_Parm.Arc_Turn_Resume_Speed;

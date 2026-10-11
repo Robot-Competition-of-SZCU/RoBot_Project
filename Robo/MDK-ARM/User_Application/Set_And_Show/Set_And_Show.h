@@ -24,6 +24,7 @@
 		+-二级系统设置菜单--+-三级速度设置菜单--+-前进速度设置
 		|					|					+-后退速度设置
 		|					|					+-转向速度设置
+		|					|					+-行进里程测试
 		|					|					+-转向速度校准
 		|					|					+-参数存储
 		|					|						
@@ -122,6 +123,7 @@ typedef enum{
 	Advance_Speed_Set = 0,	//前进速度设置
 	Retreat_Speed_Set,		//后退度设置
 	Turn_Speed_Set,			//转向速度设置
+	RUN_Mileage_Set,		//行进里程测试
 	Turn_Calibration,		//转向校准
 }Menu_Speed_Set_L4;
 

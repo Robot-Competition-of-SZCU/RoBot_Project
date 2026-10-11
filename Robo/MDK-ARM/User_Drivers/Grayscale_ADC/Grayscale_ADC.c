@@ -35,10 +35,12 @@ struct Grayscale_OutPut Grayscale_Out;
 void Grayscale_Init(void)
 {
 	//开启ADC1与ADC2
-	HAL_ADC_Start(&hadc2);
 	HAL_ADC_Start(&hadc1); 
+	//HAL_ADC_Start(&hadc2);
 	//启动ADC双通道同步采集
-	HAL_ADCEx_MultiModeStart_DMA(&hadc1, (uint32_t*)Grayscale_ADC_Buffer, 8);
+	//HAL_ADCEx_MultiModeStart_DMA(&hadc1, (uint32_t*)Grayscale_ADC_Buffer, 8);
+
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Grayscale_ADC_Buffer, 16);
 	
 	//开启TIM5作为ADC触发时钟
 	HAL_TIM_PWM_Start(&htim5,TIM_CHANNEL_1);
@@ -117,6 +119,8 @@ void Grayscale_Data_Stream_Processing(void)
 	Scan_Line_Segment_Compute();	//巡线不连续触发段统计计算
 	Grayscale_ADC_Map_Compute();	//灰度传感器ADC映射计算
 	Intersection_Recognition();		//路口识别
+
+	Grayscale_Out_Map_Filter();		//灰度坐标映射滤波
 }
 
 /** @brief	灰度传感器ADC解算
@@ -297,7 +301,7 @@ void Grayscale_ADC_Map_Compute(void)
 	//单段线触发数量大于等于Grayscale_Cover_Line_Num * 2个，为十字或直角路口
 	for(char i=0;i<Grayscale_Out.Number_Of_Discontinuous_Points;i++)
 	{
-		if(Segment_End[i] - Segment_Start[i] >= Grayscale_Cover_Line_Num * 2)
+		if(Segment_End[i] - Segment_Start[i] > 4)
 			//计算模式为1，隔离路口大面积标线干扰
 			Compute_Mode = 1;
 	}
@@ -615,6 +619,14 @@ void Intersection_Recognition(void)
 				Grayscale_Out.Now_Intersection = Left_Obtuse_Angle_Intersection;
 		}
 	}
+}
 
+/** @brief	灰度坐标映射滤波
+  * @note	滤波值 = 滤波系数 * 实际值 + （1-滤波系数） * 上一滤波值
+  **/
+void Grayscale_Out_Map_Filter(void)
+{
+	Grayscale_Out.Grayscale_Map_Filter	= Grayscale_Map_Filter_Alpha * Grayscale_Out.Grayscale_Map
+										+ (1-Grayscale_Map_Filter_Alpha) * Grayscale_Out.Grayscale_Map_Filter;
 }
 

@@ -38,11 +38,10 @@
 #include "Control.h"
 #include "PID.h"
 #include "Set_And_Show.h"
-
-volatile UBaseType_t RUN_LED = 0;
-=======
 #include "IMU.h"
 #include "Interrupt.h"
+#include "IO_Put.h"
+#include "RUN_Process.h"
   
 //各任务信息存储区
 TaskStatus_t xTaskDetails_defaultTask;
@@ -60,8 +59,8 @@ TaskStatus_t xTaskDetails_UART_Debug;
 void User_Init(void)
 {
 	HAL_Delay(10);
-	//单片机首次下载程序时不要运行该函数，否则会产生数据错误
-	//再执行一遍flash写入操作后方可运行该函数
+
+	//单片机首次下载程序时该函数将不读取任何数据
 	Flash_Read();			//从Flash中读取数据
 	//HAL_Delay(100);
 	
@@ -74,10 +73,10 @@ void User_Init(void)
 	RUN_Parm_Init();		//运行参数初始化
 	PID_Parameter_Init();	//PID参数初始化
 	
-	// HAL_Delay(1000);
-	// UART_Audio_Loud_Control(30);
-	// HAL_Delay(20);
-	// UART_Audio_Mode_Control();
+	HAL_Delay(1000);
+	UART_Audio_Loud_Control(30);
+	HAL_Delay(20);
+	UART_Audio_Mode_Control();
 	// HAL_Delay(20);
 	// UART_Audio_Control(100);
 
@@ -172,9 +171,9 @@ void Slow_Compute_Task(void *argument)
 		Encoder_Input_Frequiency_Filter();	//编码器输入频率滤波
 		Encoder_Speed_Compute();			//编码器速度计算
 		Motor_Speed_Control();				//电机速度控制，PID内环
-
-		//IMU姿态解析
-		IMU_GET_Data();
+		
+		IMU_GET_Data();		//IMU姿态解析
+		Posture_Protect();	//姿态保护
 		
 		//10ms延时任务
 		if(Time_Base % 2 == 0)
@@ -194,9 +193,9 @@ void Slow_Compute_Task(void *argument)
 			}
 			else if(RUN_Parm.Control_State == Angle_Control)
 			{
-				if(RUN_Parm.Angle_Control_Choice == Angle_Control_Advance)
+				if(RUN_Parm.Car_RUN_Direction == RUN_Advance)
 					Angle_Patrol_Control();			//角度跟随控制
-				else if(RUN_Parm.Angle_Control_Choice == Angle_Control_Retreat)
+				else if(RUN_Parm.Car_RUN_Direction == RUN_Retreat)
 					Angle_Patrol_Retreat_Control();	
 			}	
 			else if(RUN_Parm.Control_State == Arc_Turn_Control)
@@ -299,6 +298,8 @@ void UART_Debug_Task(void *argument)
 		// memcpy(&Send_Data[22], &Grayscale_ADC_Buffer[11],2);
 		// memcpy(&Send_Data[24], &Grayscale_ADC_Buffer[12],2);
 		// memcpy(&Send_Data[26], &Grayscale_ADC_Buffer[13],2);
+
+		// UART_Debug_Send_Date(Send_Data,28);
 		
 		// memcpy(&Send_Data[0],&PID_Motor1.Target,sizeof(float));
 		// memcpy(&Send_Data[4],&Encoder1.RMP_S,sizeof(float));
@@ -316,9 +317,10 @@ void UART_Debug_Task(void *argument)
 		// memcpy(&PID_Motor4.Kp,&Debug_Receive_Buffer[5],sizeof(float));
 		// memcpy(&PID_Motor4.Ki,&Debug_Receive_Buffer[9],sizeof(float));
 
-		// //发送调试数据
-		// memcpy(&Send_Data[0],&PID_Motor4.Target,sizeof(float));
-		// memcpy(&Send_Data[4],&Encoder4.RMP_S,sizeof(float));
+
+		//发送调试数据
+		// memcpy(&Send_Data[0], &Grayscale_Out.Grayscale_Map,4);
+		// memcpy(&Send_Data[4], &Grayscale_Out.Grayscale_Map_Filter,4);
 		// UART_Debug_Send_Date(Send_Data,8);
 
 	}
