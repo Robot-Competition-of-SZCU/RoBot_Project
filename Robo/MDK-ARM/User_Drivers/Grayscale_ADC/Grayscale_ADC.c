@@ -173,8 +173,8 @@ void Grayscale_ADC_Compute(void)
 			}
 			//计算校准后参数百分比
 			for(char i=0;i<Grayscale_Num;i++)
-			{	//参数百分比 = (实际值 / (最大极限值 - 最小极限值)) * 100
-				Grayscale.Grayscale_ADC_Compute_Percent[i] = (float)(Grayscale.Grayscale_ADC_Compute[i]
+			{	//参数百分比 = ((实际值 -  最小极限值) / (最大极限值 - 最小极限值)) * 100
+				Grayscale.Grayscale_ADC_Compute_Percent[i] = (float)(Grayscale.Grayscale_ADC_Compute[i] - Grayscale.Grayscale_ADC_Min[i])
 															/(float)(Grayscale.Grayscale_ADC_Max[i] - Grayscale.Grayscale_ADC_Min[i]))
 															* 100.0f;
 			}

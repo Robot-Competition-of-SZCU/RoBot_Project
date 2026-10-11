@@ -62,6 +62,8 @@ void Platform7_to_Platform8(void);				//平台7至平台8
 void Platform8_to_Scenic_Spot3(void);			//平台8至景点3
 void Scenic_Spot3_to_Test_C(void);				//景点3至C点
 
+void Scenic_Spot3_to_Platform6(void);			//景点3至平台6
+
 //回家
 void Aplha_to_Platform1(void);					//Alpha点至平台1
 void GoHome_Way_1(void);						//1号点回家
