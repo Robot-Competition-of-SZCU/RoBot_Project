@@ -854,6 +854,78 @@ void Wait_Grayscale_State(Grayscale_Trigger_Mode Mode)
 		while(Grayscale_Out.Grayscale_Trigger_Num)	osDelay(1);
 }
 
+/** @brief	断线扫描
+  * @param	Mode		旋转扫描方向
+  * @param	Scan_Speed	扫描旋转速度
+  * @note	调用时若灰度传感器已检测到线，则直接退出
+  * @note	未检测到线时，按设定方向原地低速旋转扫线，扫到线后停止
+  * @note	退出前恢复直行方向、原控制状态与原目标速度
+  **/
+void Break_Line_Scan(Turn_Mode Mode,float Scan_Speed)
+{
+	//已扫到线，直接退出
+	if(Grayscale_Out.Grayscale_Trigger_Num) return;
+
+	//扫描速度保护，速度为0时无法旋转，默认使用低速扫描
+	if(Scan_Speed <= 0) Scan_Speed = 1;
+
+	//保存调用前状态，扫描结束后恢复
+	Control_Choice Save_Control_State = RUN_Parm.Control_State;			//原控制状态
+	float Save_Triger_Speed = Motor_Control_Parm.Base_Triger_Speed;	//原目标速度
+
+	//停止当前运动，清空残余速度
+	Car_Mode(Car_Stop);
+
+	//设置旋转方向
+	if(Mode == Turn_Left)
+		Car_Mode(Car_Turn_Left);
+	else if(Mode == Turn_Right)
+		Car_Mode(Car_Turn_Right);
+	else
+		return;
+
+	//旋转扫描期间由本函数直接控制电机，防止周期任务差速干涉
+	RUN_Parm.Control_State = Turn_Control;
+
+	//低速斜坡起步，防止启动冲击
+	float Now_Speed = 0;					//当前旋转速度，起点为0
+	while(!Grayscale_Out.Grayscale_Trigger_Num)
+	{
+		//加速至扫描速度
+		if(Now_Speed < Scan_Speed)
+		{
+			//加减速参数未配置时直接跳变，防止斜坡失效导致无法旋转
+			if(AD_S.Turn_A_Speed > 0)
+			{
+				Now_Speed += AD_S.Turn_A_Speed * 0.001f;	//进行加速，调节周期1ms
+				if(Now_Speed > Scan_Speed) Now_Speed = Scan_Speed;	//钳位，防止过冲
+			}
+			else
+				Now_Speed = Scan_Speed;
+		}
+
+		//四轮同速旋转
+		Motor_Control_Parm.Motor1_Speed = Now_Speed;
+		Motor_Control_Parm.Motor2_Speed = Now_Speed;
+		Motor_Control_Parm.Motor3_Speed = Now_Speed;
+		Motor_Control_Parm.Motor4_Speed = Now_Speed;
+
+		osDelay(1);
+	}
+
+	//停止旋转
+	Motor_Control_Parm.Motor1_Speed = 0;
+	Motor_Control_Parm.Motor2_Speed = 0;
+	Motor_Control_Parm.Motor3_Speed = 0;
+	Motor_Control_Parm.Motor4_Speed = 0;
+
+	//恢复直行方向
+	Car_Mode(Car_Advance);
+	//恢复原控制状态与原目标速度
+	RUN_Parm.Control_State = Save_Control_State;
+	Motor_Control_Parm.Base_Triger_Speed = Save_Triger_Speed;
+}
+
 /** @brief	等待到达指定路口
   * @param	Intersection_Mode	路口选择
   **/

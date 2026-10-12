@@ -191,6 +191,7 @@ void Wait_Middle_Sensor_Trigger(void);					//等待中部光电传感器触发
 void Wait_Microswitch_Trigger(void);					//等待两侧微动开关触发
 void Wait_X_Angle(Angle_Compare_Mode Mode,float Angle);	//等待到达设定角度
 void Wait_Grayscale_State(Grayscale_Trigger_Mode Mode);	//等待灰度传感器状态
+void Break_Line_Scan(Turn_Mode Mode,float Scan_Speed);	//断线扫描
 void Wait_Appoint_Intersection(Intersection Intersection_Mode);	//等待到达指定路口
 void Wait_Disperse_Intersection(void);					//等待到达分散路口
 void Wait_Join_Intersection(void);						//等待到达交汇路口

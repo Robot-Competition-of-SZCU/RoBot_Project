@@ -68,7 +68,7 @@ void User_Init(void)
 	Servo_Init();			//舵机初始化
 	Encoder_Init();			//编码器初始化
 	UART_Receive_Init();	//串口接收初始化
-	Grayscale_Init();	//灰度传感器ADC采集初始化
+	Grayscale_Init();		//灰度传感器ADC采集初始化
 	OLED_Init();			//OLED初始化
 	RUN_Parm_Init();		//运行参数初始化
 	PID_Parameter_Init();	//PID参数初始化
