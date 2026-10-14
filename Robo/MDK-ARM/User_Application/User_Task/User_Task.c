@@ -77,8 +77,8 @@ void User_Init(void)
 	UART_Audio_Loud_Control(30);
 	HAL_Delay(20);
 	UART_Audio_Mode_Control();
-	// HAL_Delay(20);
-	// UART_Audio_Control(100);
+	HAL_Delay(20);
+	UART_Audio_Control(101);
 
 	Motor_Start();			//电机控制启动
 	
@@ -282,7 +282,7 @@ void UART_Debug_Task(void *argument)
 	{	//10ms阻塞延时
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 		
-		// static char Send_Data[40];
+		static char Send_Data[40];
 		
 		// memcpy(&Send_Data[0], &Grayscale_ADC_Buffer[0],2);
 		// memcpy(&Send_Data[2], &Grayscale_ADC_Buffer[1],2);

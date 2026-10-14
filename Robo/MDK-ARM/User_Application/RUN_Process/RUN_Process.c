@@ -24,14 +24,8 @@
 void RUN_System_Control(void)
 {
 	//运行状态下
-    if(RUN_Parm.RUN_Control)
+    if(RUN_Parm.RUN_State)
     {
-		RUN_Parm.RUN_State = 1;
-		Scenic_Spot3_to_Platform6();
-
-		osDelay(1000000);
-
-
 		//举手
 		Servo_State.Servo_Angle[Servo5] = 180;
 		Servo_State.Servo_Angle[Servo6] = 180;
@@ -392,13 +386,16 @@ void Hit_The_Scenic_Spot(void)
   **/
 void Turn_Around_For_Platform(void)
 {
-	Servo_State.Servo_Angle[Servo2] = 90;			//舵机角度设定
-
+	
 	//举手
 	Servo_State.Servo_Angle[Servo5] = 180;
 	osDelay(200);									//等待200ms
 	Servo_State.Servo_Angle[Servo6] = 180;
 	osDelay(200);									//等待200ms
+
+	Servo_State.Servo_Angle[Servo2] = 90;			//舵机角度设定
+
+	osDelay(200);
 
 	Car_Turn_Control(Turn_Left,180,3);				//左转180度
 
@@ -415,12 +412,14 @@ void Turn_Around_For_Platform(void)
   **/
 void Turn_Around_For_Platform_8(void)
 {
-		Servo_State.Servo_Angle[Servo2] = 90;			//舵机角度设定
-
 	//举手
 	Servo_State.Servo_Angle[Servo5] = 180;
 	osDelay(200);									//等待200ms
 	Servo_State.Servo_Angle[Servo6] = 180;
+	osDelay(200);									//等待200ms
+
+	Servo_State.Servo_Angle[Servo2] = 90;			//舵机角度设定
+
 	osDelay(200);									//等待200ms
 
 	Car_Turn_Control(Turn_Left,180,1.5);			//左转180度
