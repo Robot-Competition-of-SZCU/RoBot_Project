@@ -438,8 +438,8 @@ void Car_Turn_Control(Turn_Mode Mode,float Turn_Angle,float Turn_Speed)
 	//等待抬起
 	osDelay(50);
 
-	//补偿
-	Turn_Angle -= 2;
+	// //补偿
+	// Turn_Angle -= 2;
 
 	//限制转向角度范围
 	if(Turn_Angle > 180) Turn_Angle = 180;
@@ -510,7 +510,7 @@ void Car_Turn_Control(Turn_Mode Mode,float Turn_Angle,float Turn_Speed)
 	//降下前瞻
 	Servo_State.Servo_Angle[Servo2] = 35;
 	//等待降下
-	osDelay(50);
+	osDelay(60);
 
 	//调整为直行
 	Car_Mode(Car_Advance);
@@ -813,6 +813,16 @@ void Wait_Middle_Sensor_Trigger(void)
 	while(!INPut_Signal.Sensor_Middle_Int) osDelay(1);	
 }
 
+/** @brief	等待任一光电传感器触发
+  **/
+void Wait_Other_Sensor_Trigger(void)
+{
+	//清除光电传感器触发状态
+	INPut_Signal.Sensor_Left_Int = 0; INPut_Signal.Sensor_Right_Int = 0; INPut_Signal.Sensor_Middle_Int = 0;
+	//等待左右侧光电传感器触发
+	while(!INPut_Signal.Sensor_Left_Int && !INPut_Signal.Sensor_Right_Int && !INPut_Signal.Sensor_Middle_Int) osDelay(1);	
+}
+
 /** @brief	等待两侧微动开关触发
   **/
 void Wait_Microswitch_Trigger(void)
@@ -958,10 +968,10 @@ void Wait_Disperse_Intersection(void)
   **/
 void Wait_Join_Intersection(void)
 {
-	//等待灰度触发>=4
-	while(!(Grayscale_Out.Grayscale_Trigger_Num >= 4)) osDelay(1);
-	//等待灰度触发<4
-	while(!(Grayscale_Out.Grayscale_Trigger_Num < 4)) osDelay(1);
+	//等待灰度触发>4
+	while(!(Grayscale_Out.Grayscale_Trigger_Num > 4)) osDelay(1);
+	//等待灰度触发<=4
+	while(!(Grayscale_Out.Grayscale_Trigger_Num <= 4)) osDelay(1);
 }
 
 /** @brief	等待存在指定线数

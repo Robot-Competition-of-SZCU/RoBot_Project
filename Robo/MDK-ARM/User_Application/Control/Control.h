@@ -46,7 +46,7 @@ extern struct Accelerated_Speed AD_S;
 
 //轮速与车体旋转角速度换算系数：角速度(度/s) = 轮速(圈/s) × 该系数
 //系数 = 57.2958 × 轮周长(cm) / 旋转半径(cm)，旋转半径 = 左右轮距的一半，需按实车标定
-#define Turn_Angle_Speed_Coefficient	250.0f
+#define Turn_Angle_Speed_Coefficient	280.0f
 
 //弧线转弯时，反侧轮转速比率
 #define Turn_Arc_Ratio		0.1f
@@ -188,6 +188,7 @@ char Colour_Test_Recognition(void);		//颜色识别
 void Get_Now_Z_Angle(float Err);						//获取当前Z轴角度
 void Wait_Side_Sensor_Trigger(void);					//等待两侧光电传感器触发
 void Wait_Middle_Sensor_Trigger(void);					//等待中部光电传感器触发
+void Wait_Other_Sensor_Trigger(void);					//等待任一光电传感器触发
 void Wait_Microswitch_Trigger(void);					//等待两侧微动开关触发
 void Wait_X_Angle(Angle_Compare_Mode Mode,float Angle);	//等待到达设定角度
 void Wait_Grayscale_State(Grayscale_Trigger_Mode Mode);	//等待灰度传感器状态

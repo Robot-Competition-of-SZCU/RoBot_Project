@@ -77,8 +77,8 @@ void User_Init(void)
 	UART_Audio_Loud_Control(30);
 	HAL_Delay(20);
 	UART_Audio_Mode_Control();
-	HAL_Delay(20);
-	UART_Audio_Control(101);
+	// HAL_Delay(20);
+	// UART_Audio_Control(101);
 
 	Motor_Start();			//电机控制启动
 	
@@ -173,7 +173,7 @@ void Slow_Compute_Task(void *argument)
 		Motor_Speed_Control();				//电机速度控制，PID内环
 		
 		IMU_GET_Data();		//IMU姿态解析
-		Posture_Protect();	//姿态保护
+		//Posture_Protect();	//姿态保护
 		
 		//10ms延时任务
 		if(Time_Base % 2 == 0)
@@ -282,7 +282,7 @@ void UART_Debug_Task(void *argument)
 	{	//10ms阻塞延时
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 		
-		static char Send_Data[40];
+		// static char Send_Data[40];
 		
 		// memcpy(&Send_Data[0], &Grayscale_ADC_Buffer[0],2);
 		// memcpy(&Send_Data[2], &Grayscale_ADC_Buffer[1],2);
@@ -293,7 +293,7 @@ void UART_Debug_Task(void *argument)
 		// memcpy(&Send_Data[12], &Grayscale_ADC_Buffer[6],2);
 		// memcpy(&Send_Data[14], &Grayscale_ADC_Buffer[7],2);
 		// memcpy(&Send_Data[16], &Grayscale_ADC_Buffer[8],2);
-		// memcpy(&Send_Data[18], &Grayscale_ADC_Buffer[9],2);
+		// memcpy(&Send_Data[18], &Grayscale_ADC_Buffer[9 ],2);
 		// memcpy(&Send_Data[20], &Grayscale_ADC_Buffer[10],2);
 		// memcpy(&Send_Data[22], &Grayscale_ADC_Buffer[11],2);
 		// memcpy(&Send_Data[24], &Grayscale_ADC_Buffer[12],2);
@@ -301,9 +301,11 @@ void UART_Debug_Task(void *argument)
 
 		// UART_Debug_Send_Date(Send_Data,28);
 		
-		// memcpy(&Send_Data[0],&PID_Motor1.Target,sizeof(float));
-		// memcpy(&Send_Data[4],&Encoder1.RMP_S,sizeof(float));
-		// UART_Debug_Send_Date(Send_Data,8);
+		// memcpy(&Send_Data[0],&Encoder1.Filter_Frequiency,sizeof(float));
+		// memcpy(&Send_Data[4],&Encoder2.Filter_Frequiency,sizeof(float));
+		// memcpy(&Send_Data[8],&Encoder3.Filter_Frequiency,sizeof(float));
+		// memcpy(&Send_Data[12],&Encoder4.Filter_Frequiency,sizeof(float));
+		// UART_Debug_Send_Date(Send_Data,16);
 		
 		// memcpy(&Motor_Control_Parm.Motor1_Speed,&Debug_Receive_Buffer[1],sizeof(float));
 		// memcpy(&Line_Patrol_PID.Ki,&Debug_Receive_Buffer[9],sizeof(float));

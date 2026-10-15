@@ -690,13 +690,13 @@ void Menu_RUN_View(KEY_Tigger_State KEY1,KEY_Tigger_State KEY2,KEY_Tigger_State 
 	}
 
 	//显示
-	OLED_Printf(0,0 - Menu_Y_Shift*16,OLED_8X16,"直立景点%d个",Visual_Identity.Word_Test_Num);
+	OLED_Printf(0,0 - Menu_Y_Shift*16,OLED_8X16,"直立景点%d个",2 * RUN_Parm.Round);
 	OLED_Printf(0,16 - Menu_Y_Shift*16,OLED_8X16,"1-5号平台%d个",5 * RUN_Parm.Round);
 	OLED_Printf(0,32 - Menu_Y_Shift*16,OLED_8X16,"6号平台0个");
 	OLED_Printf(0,48 - Menu_Y_Shift*16,OLED_8X16,"7号平台%d个",RUN_Parm.Round);
 	OLED_Printf(0,64 - Menu_Y_Shift*16,OLED_8X16,"8号平台%d个",RUN_Parm.Round);
 	OLED_Printf(0,80 - Menu_Y_Shift*16,OLED_8X16,"回家%d次",RUN_Parm.Round);
-	OLED_Printf(0,96 - Menu_Y_Shift*16,OLED_8X16,"总分%4d分",((Visual_Identity.Word_Test_Num * 11) + 390) * 1.2 - 30);
+	OLED_Printf(0,96 - Menu_Y_Shift*16,OLED_8X16,"总分%5.1f分",274.2 * RUN_Parm.Round);
 
 	//控制指针指向的参数高亮显示
 	switch(Menu_Pointer)
