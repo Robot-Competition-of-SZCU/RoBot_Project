@@ -206,7 +206,7 @@ void Scan_Line_Control(void)
 	PID_Positional_Compute(&Line_Patrol_PID);					//PID计算
 
 	//当基础速度高于5时，启用角度抑制
-	if(Motor_Control_Parm.Base_Speed >= 4.9)
+	if(Motor_Control_Parm.Base_Speed >= 4.9f)
 	{
 		//差速比叠加Z轴陀螺仪阻尼，抑制高速震荡
 		Line_Patrol_PID.Out += Line_Patrol_Gyro_Damping * IMU_Data.IMU_Gyro_Z;

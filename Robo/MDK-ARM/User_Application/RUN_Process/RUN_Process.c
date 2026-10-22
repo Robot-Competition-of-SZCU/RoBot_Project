@@ -24,50 +24,8 @@
 void RUN_System_Control(void)
 {
 	//运行状态下
-    if(RUN_Parm.RUN_State)
+    if(RUN_Parm.RUN_Control)
     {
-		// //测试
-		// Platform1_to_Platform2_on_Bridge();
-		// Turn_Around_For_Platform();		//平台转向
-		// Platform2_to_Scenic_Spot2();
-		// Hit_The_Scenic_Spot();
-		// Scenic_Spot2_to_Platform4_ScanLine();
-		// Turn_Around_For_Platform();		//平台转向
-		// Platform4_to_Scenic_Spot1();
-		// Hit_The_Scenic_Spot();
-		// Scenic_Spot1_to_Platform3_ScanLine();
-		// Turn_Around_For_Platform();		//平台转向
-
-		// //检测
-		// Platform3_to_Test_A();
-		// Traffic_Sign_1_Test();
-		// Traffic_Sign_2_Test();
-		// Traffic_Sign_2_Pass();
-		// Traffic_Sign_4_Test();
-		// Traffic_Sign_3_Pass();
-
-		
-		// Test_D_to_Test_C();						//D点至C点
-		// Car_Arc_Turn_Control(Turn_Right,90,3);	//行进中右转90
-		// Test_C_to_Test_D();						//C点至D点
-
-		// GoHome_Way_4();
-		// Traffic_Sign_3_Pass_Direct();
-
-		//平台2至4
-		// Platform2_to_Platform4();
-		// Turn_Around_For_Platform();		//平台转向
-		// Platform4_to_Platform3();
-
-		Platform7_to_Platform8();
-		Turn_Around_For_Platform_8();
-		Platform8_to_Scenic_Spot3();
-
-		//停止
-		Car_Mode(Car_Stop);
-		RUN_Parm.RUN_State = 0;
-		return;
-
 		//举手
 		Servo_State.Servo_Angle[Servo5] = 180;
 		Servo_State.Servo_Angle[Servo6] = 180;
@@ -105,8 +63,8 @@ void RUN_System_Control(void)
 		// Hit_The_Scenic_Spot();			//撞景点
 
 
-			if(RUN_Parm.Round == 0)						//第一回合
-				UART_Visual_Identity_Send_Order('9');	//退出文字识别
+			// if(RUN_Parm.Round == 0)						//第一回合
+			// 	UART_Visual_Identity_Send_Order('9');	//退出文字识别
 
 		//3号平台
 		// Scenic_Spot1_to_Platform3_ScanLine();	//景点1至平台3
@@ -137,7 +95,7 @@ void RUN_System_Control(void)
 
 			Traffic_Sign_2_Test();		//通道2测试
 			//检测2
-			if(Colour_Test_Recognition() == 0)
+			if(Colour_Test_Recognition() == 1)
 			{	
 						UART_Visual_Identity_Send_Order('9');	//退出颜色识别
 
@@ -215,9 +173,9 @@ void RUN_System_Control(void)
 			case 4:	GoHome_Way_4();	//4号线路回家
 					break;
 		}
+		UART_Audio_Control(1);			//播报到达1号平台
 		Turn_Around_For_Platform();		//平台转向
 
-		UART_Audio_Control(1);			//播报到达1号平台
 		//osDelay(2000);
 
 		//停止
@@ -234,7 +192,7 @@ void Go_Up_Platform(void)
 
 	RUN_Speed_Set(2);			//速度设置
 
-	Wait_X_Angle(Greater,15);	//等待X轴角度到达15度
+	Wait_X_Angle(Greater,10);	//等待X轴角度到达10度
 
 	Wait_Grayscale_State(No_Trigger);	//等待灰度无触发
 	Get_Now_Z_Angle(0);			//获取当前角度
@@ -269,7 +227,7 @@ void Go_Up_Start_Platform(void)
 	Get_Now_Z_Angle(0);			//获取当前角度
 	
 	//角度跟随前进10
-	Angle_Following_RUN_Control(RUN_Advance,1.5,0,50,End_Finish_Deceleration);
+	Angle_Following_RUN_Control(RUN_Advance,1.5,0,45,End_Finish_Deceleration);
 
 	Car_Mode(Car_Stop);				//停止
 }
@@ -289,7 +247,7 @@ void Go_Up_2Step_High_Platform(void)
 	Get_Now_Z_Angle(0);					//获取当前角度
 	
 	//角度跟随前进10
-	Angle_Following_RUN_Control(RUN_Advance,1.5,1.5,10,End_Finish_Deceleration);
+	Angle_Following_RUN_Control(RUN_Advance,2,2,10,End_Finish_Deceleration);
 
 	Wait_Grayscale_State(Trigger);		//等待灰度触发
 
@@ -1026,6 +984,9 @@ void Traffic_Sign_1_Pass_Direct(void)
 
 	//巡线控制前进
 	Scan_Line_RUN_Control(8,3,170,End_Finish_Deceleration);
+
+	//等待到达十字路口
+	Wait_Appoint_Intersection(Crossroad);
 }
 
 /** @brief	2点直接通过
@@ -1152,7 +1113,7 @@ void Scenic_Spot4_to_Scenic_Spot5(void)
 	Car_Arc_Turn_Control(Turn_Left,90,3);			//行进中左转
 
 	//巡线控制前进
-	Scan_Line_RUN_Control(6,3,200,End_Finish_Deceleration);
+	Scan_Line_RUN_Control(6,3,250,End_Finish_Deceleration);
 
 	//等待到达左直角路口
 	Wait_Appoint_Intersection(Left_Right_angle_Intersection);
@@ -1244,10 +1205,10 @@ void Platform5_to_Platform7(void)
 	Grayscale_Ctrl.Target_Following = Right_Line_Follows;
 
 	//巡线控制前进
-	Scan_Line_RUN_Control(3,3,10,End_Finish_Deceleration);
+	Scan_Line_RUN_Control(3,3,20,End_Finish_Deceleration);
 
 	//巡线控制前进
-	Scan_Line_RUN_Control(5,3,60,End_Finish_Deceleration);
+	Scan_Line_RUN_Control(5,3,50,End_Finish_Deceleration);
 
 	//跟随中侧线
 	Grayscale_Ctrl.Target_Following = Middle_Line_Follows;
@@ -1313,6 +1274,9 @@ void Platform7_to_Platform8(void)
 	//下一阶高台
 	Go_Down_1Step_High_Platform();
 
+	//巡线控制前进
+	Scan_Line_RUN_Control(2,2,20,End_Finish_Deceleration);
+
 	//翻越波浪板
 	Cross_the_Wave_Board(120);
 
@@ -1348,7 +1312,10 @@ void Platform8_to_Scenic_Spot3(void)
 	Car_Turn_Control(Turn_Left,135,3);		//左转
 
 	//巡线控制前进
-	Scan_Line_RUN_Control(6,3,120,End_Finish_Deceleration);
+	Scan_Line_RUN_Control(3,3,20,End_Finish_Deceleration);
+
+	//巡线控制前进
+	Scan_Line_RUN_Control(6,3,100,End_Finish_Deceleration);
 
 	//等待到达交汇路口
 	Wait_Join_Intersection();
@@ -1446,7 +1413,7 @@ void Platform8_to_Test_C(void)
 	//巡线控制前进
 	Scan_Line_RUN_Control(2,0,20,End_Finish_Deceleration);
 
-	Car_Turn_Control(Turn_Left,140,3);		//左转
+	Car_Turn_Control(Turn_Left,150,3);		//左转
 
 	//巡线控制前进
 	Scan_Line_RUN_Control(6,3,120,End_Finish_Deceleration);
@@ -1594,7 +1561,7 @@ void Aplha_to_Platform1(void)
 	Scan_Line_RUN_Control(3,3,20,End_Finish_Deceleration);
 
 	//翻越波浪板
-	Cross_the_Wave_Board(80);
+	Cross_the_Wave_Board(70);
 
 	//巡线控制前进
 	Scan_Line_RUN_Control(3,3,20,End_Finish_Deceleration);
@@ -1700,7 +1667,7 @@ void GoHome_Way_2(void)
 	//等待到达交汇路口
 	Wait_Join_Intersection();
 
-	Car_Arc_Turn_Control(Turn_Left,40,3);			//行进中左转
+	Car_Arc_Turn_Control(Turn_Left,45,3);			//行进中左转
 
 	//Alpha点至平台1
 	Aplha_to_Platform1();
@@ -1762,7 +1729,8 @@ void Test_D_to_Test_C(void)
 	//7号平台
 	Platform5_to_Platform7();		//平台5至平台7
 	UART_Audio_Control(7);			//播报到达7号平台
-	Turn_Around_For_Platform();		//平台转向
+	//Turn_Around_For_Platform();		//平台转向
+	Turn_Around_For_Platform_8();
 
 	//8号平台
 	Platform7_to_Platform8();		//平台7至平台8

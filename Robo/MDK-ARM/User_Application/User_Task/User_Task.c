@@ -77,8 +77,8 @@ void User_Init(void)
 	UART_Audio_Loud_Control(30);
 	HAL_Delay(20);
 	UART_Audio_Mode_Control();
-	// HAL_Delay(20);
-	// UART_Audio_Control(101);
+	HAL_Delay(20);
+	UART_Audio_Control(101);
 
 	Motor_Start();			//电机控制启动
 	
@@ -282,7 +282,7 @@ void UART_Debug_Task(void *argument)
 	{	//10ms阻塞延时
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 		
-		// static char Send_Data[40];
+		static char Send_Data[40];
 		
 		// memcpy(&Send_Data[0], &Grayscale_ADC_Buffer[0],2);
 		// memcpy(&Send_Data[2], &Grayscale_ADC_Buffer[1],2);
@@ -301,11 +301,13 @@ void UART_Debug_Task(void *argument)
 
 		// UART_Debug_Send_Date(Send_Data,28);
 		
-		// memcpy(&Send_Data[0],&Encoder1.Filter_Frequiency,sizeof(float));
+		memcpy(&Send_Data[0],&PID_Motor1.Actual,sizeof(float));
+		memcpy(&Send_Data[4],&PID_Motor1.Target,sizeof(float));
+		memcpy(&Send_Data[8],&PID_Motor1.Out,sizeof(float));
 		// memcpy(&Send_Data[4],&Encoder2.Filter_Frequiency,sizeof(float));
 		// memcpy(&Send_Data[8],&Encoder3.Filter_Frequiency,sizeof(float));
 		// memcpy(&Send_Data[12],&Encoder4.Filter_Frequiency,sizeof(float));
-		// UART_Debug_Send_Date(Send_Data,16);
+		UART_Debug_Send_Date(Send_Data,12);
 		
 		// memcpy(&Motor_Control_Parm.Motor1_Speed,&Debug_Receive_Buffer[1],sizeof(float));
 		// memcpy(&Line_Patrol_PID.Ki,&Debug_Receive_Buffer[9],sizeof(float));
@@ -320,10 +322,11 @@ void UART_Debug_Task(void *argument)
 		// memcpy(&PID_Motor4.Ki,&Debug_Receive_Buffer[9],sizeof(float));
 
 
-		//发送调试数据
-		// memcpy(&Send_Data[0], &Grayscale_Out.Grayscale_Map,4);
-		// memcpy(&Send_Data[4], &Grayscale_Out.Grayscale_Map_Filter,4);
-		// UART_Debug_Send_Date(Send_Data,8);
+		// //发送调试数据
+		// memcpy(&Send_Data[0], &IMU_Data.IMU_Angle_X,4);
+		// memcpy(&Send_Data[4], &IMU_Data.IMU_Angle_Y,4);
+		// memcpy(&Send_Data[8], &IMU_Data.IMU_Angle_Z,4);
+		// UART_Debug_Send_Date(Send_Data,12);
 
 	}
 }
