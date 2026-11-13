@@ -25,6 +25,7 @@ void Go_Down_1Step_High_Platform(void);			//下一阶高台
 void Go_Down_2Step_High_Platform(void);			//下二阶高台
 void Hit_The_Scenic_Spot(void);					//撞景点
 void Turn_Around_For_Platform(void);			//平台转向
+void Turn_Around_For_Platform_8(void);			//平台转向，8号台特调
 void Cross_the_Mountain(void);					//翻越山
 void Cross_the_Wave_Board(float Lenght);		//翻越波浪板
 
@@ -32,8 +33,14 @@ void Cross_the_Wave_Board(float Lenght);		//翻越波浪板
 void Platform1_to_Platform2_on_Bridge(void);	//平台1至平台2,走桥
 void Platform2_to_Scenic_Spot2(void);			//平台2至景点2
 void Scenic_Spot2_to_Platform4(void);			//景点2至平台4
+void Scenic_Spot2_to_Platform4_ScanLine(void);	//景点2至平台4,巡线模式
 void Platform4_to_Scenic_Spot1(void);			//平台4至景点1
 void Scenic_Spot1_to_Platform3(void);			//景点1至平台3
+void Scenic_Spot1_to_Platform3_ScanLine(void);	//景点1至平台3,巡线模式
+
+//不识别通过
+void Platform2_to_Platform4(void);				//平台2至平台4
+void Platform4_to_Platform3(void);				//平台4至平台3
 
 //通行检测
 void Platform3_to_Test_A(void);					//平台3至A点
@@ -61,6 +68,7 @@ void Platform5_to_Platform7(void);				//平台5至平台7
 void Platform7_to_Platform8(void);				//平台7至平台8
 void Platform8_to_Scenic_Spot3(void);			//平台8至景点3
 void Scenic_Spot3_to_Test_C(void);				//景点3至C点
+void Platform8_to_Test_C(void);					//平台8至C点
 
 void Scenic_Spot3_to_Platform6(void);			//景点3至平台6
 

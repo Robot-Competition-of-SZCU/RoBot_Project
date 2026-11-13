@@ -25,11 +25,16 @@ void GPIO_Trigger_Control(uint32_t GPIO_Pin)
 		//当前为允许运行状态
 		if(RUN_Parm.RUN_Control == 1)
 		{
-			//上升沿触发
-			if(HAL_GPIO_ReadPin(GPIOF,Sensor_Middle) == 1)
+			if(RUN_Parm.RUN_State == 0)
 			{
-				//开始运行
-				RUN_Parm.RUN_State = 1;	
+				//延时消抖
+				osDelay(10);
+				//上升沿触发
+				if(HAL_GPIO_ReadPin(GPIOF,Sensor_Middle) == 1)
+				{
+					//开始运行
+					RUN_Parm.RUN_State = 1;	
+				}
 			}
 		}
 		//运行状态下

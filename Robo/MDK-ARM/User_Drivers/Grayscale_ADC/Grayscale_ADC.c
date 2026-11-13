@@ -173,8 +173,8 @@ void Grayscale_ADC_Compute(void)
 			}
 			//计算校准后参数百分比
 			for(char i=0;i<Grayscale_Num;i++)
-			{	//参数百分比 = ((实际值 -  最小极限值) / (最大极限值 - 最小极限值)) * 100
-				Grayscale.Grayscale_ADC_Compute_Percent[i] = (float)(Grayscale.Grayscale_ADC_Compute[i] - Grayscale.Grayscale_ADC_Min[i])
+			{	//参数百分比 = (实际值 / (最大极限值 - 最小极限值)) * 100
+				Grayscale.Grayscale_ADC_Compute_Percent[i] = (float)(Grayscale.Grayscale_ADC_Compute[i]
 															/(float)(Grayscale.Grayscale_ADC_Max[i] - Grayscale.Grayscale_ADC_Min[i]))
 															* 100.0f;
 			}
@@ -260,7 +260,6 @@ void Scan_Line_Segment_Compute(void)
 		Trigger_Continuous_State = 0;
 	}
 }
-
 
 /** @brief	灰度传感器ADC映射计算
   * @note	该函数只计算离中心点最近的连续触发段的一维映射值
