@@ -1,2 +1,3 @@
-# RoBo_Project
-RoBo_Project
+# RoBot_Project
+2026中国机器人大赛，旅游赛项探险项目工程，
+该工程与2026年11月整订完毕，分为软件，硬件，机械结构三部分
